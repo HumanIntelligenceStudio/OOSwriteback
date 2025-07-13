@@ -19,8 +19,8 @@ class Config:
     }
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
-    # Multi-API Configuration
-    DEFAULT_API_PROVIDER = os.environ.get('DEFAULT_API_PROVIDER', 'openai')
+    # Multi-API Configuration (prioritize Claude for enhanced capabilities)
+    DEFAULT_API_PROVIDER = os.environ.get('DEFAULT_API_PROVIDER', 'claude')
     
     # OpenAI Configuration
     OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
@@ -28,15 +28,15 @@ class Config:
     OPENAI_MAX_TOKENS = int(os.environ.get('OPENAI_MAX_TOKENS', '500'))
     OPENAI_TEMPERATURE = float(os.environ.get('OPENAI_TEMPERATURE', '0.7'))
     
-    # Claude (Anthropic) Configuration
-    CLAUDE_API_KEY = os.environ.get('CLAUDE_API_KEY')
-    CLAUDE_MODEL = os.environ.get('CLAUDE_MODEL', 'claude-3-5-sonnet-20241022')
+    # Claude (Anthropic) Configuration  
+    CLAUDE_API_KEY = os.environ.get('ANTHROPIC_API_KEY')
+    CLAUDE_MODEL = os.environ.get('CLAUDE_MODEL', 'claude-sonnet-4-20250514')
     CLAUDE_MAX_TOKENS = int(os.environ.get('CLAUDE_MAX_TOKENS', '500'))
     CLAUDE_TEMPERATURE = float(os.environ.get('CLAUDE_TEMPERATURE', '0.7'))
     
     # Gemini (Google) Configuration
     GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
-    GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-pro')
+    GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-2.5-flash')
     GEMINI_MAX_TOKENS = int(os.environ.get('GEMINI_MAX_TOKENS', '500'))
     GEMINI_TEMPERATURE = float(os.environ.get('GEMINI_TEMPERATURE', '0.7'))
     
