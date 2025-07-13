@@ -70,7 +70,8 @@ app.register_blueprint(video_bp)
 from voice_onboarding import voice_bp
 app.register_blueprint(voice_bp)
 
-# CSRF exemptions will be handled in the route decorators
+# CSRF exemptions for API endpoints
+csrf.exempt(voice_bp)
 
 # Initialize EOS System
 from eos_system import eos_system

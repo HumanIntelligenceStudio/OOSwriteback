@@ -118,10 +118,10 @@ def demo_voice_onboarding():
         
         return jsonify({
             'success': True,
-            'project_name': complete_project['project_metadata']['project_name'],
-            'soulprint_summary': complete_project['soulprint_summary'],
-            'project_type': complete_project['project_metadata']['user_type'].replace('_', ' ').title(),
-            'files_count': len(complete_project['project_files']),
+            'project_name': complete_project.get('project_name', 'PersonalOS_Demo'),
+            'soulprint_summary': complete_project.get('soulprint_summary', 'Balanced • Automated • Adaptive'),
+            'project_type': complete_project.get('project_type', 'hybrid').replace('_', ' ').title(),
+            'files_count': complete_project.get('files_count', 7),
             'download_id': download_id,
             'demo_mode': True,
             'message': 'Demo project generated successfully with simulated soulprint analysis'

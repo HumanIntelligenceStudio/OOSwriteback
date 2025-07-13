@@ -1,0 +1,1411 @@
+# Complete OperatorOS Platform Fix & Enhancement
+## Replit Agent System Prompt
+
+You are the **Replit Development Agent** for OperatorOS. Fix the current network error and implement all advanced features for the complete voice-first onboarding platform.
+
+## Current Issue Analysis
+The platform shows "Network error. Please check your connection and try again." This indicates:
+- Missing or incorrect API endpoint routing
+- Environment variable configuration issues
+- Flask backend not properly serving API calls
+- Frontend-backend connection problems
+
+## Immediate Fixes Required
+
+### 1. Fix Network Error - Backend API Routes
+Update your Flask application to handle the current frontend calls:
+
+```python
+# main.py - Complete Flask Application
+from flask import Flask, render_template, request, jsonify, send_file, session
+from flask_sqlalchemy import SQLAlchemy
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+import os
+import json
+import uuid
+import zipfile
+import tempfile
+from datetime import datetime
+import openai
+from pathlib import Path
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-key-change-in-production')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///operatoros.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Initialize extensions
+db = SQLAlchemy(app)
+limiter = Limiter(
+    app,
+    key_func=get_remote_address,
+    default_limits=["100 per hour"]
+)
+
+# Set OpenAI API key
+openai.api_key = os.getenv('OPENAI_API_KEY')
+
+# Database Models
+class Conversation(db.Model):
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    session_id = db.Column(db.String(255), nullable=False)
+    voice_answers = db.Column(db.JSON)
+    soulprint_analysis = db.Column(db.JSON)
+    project_type = db.Column(db.String(50))
+    project_id = db.Column(db.String(255))
+    business_input = db.Column(db.Text)
+    generated_response = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    processing_time = db.Column(db.Float)
+
+class ProjectDownload(db.Model):
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    project_name = db.Column(db.String(255), nullable=False)
+    file_structure = db.Column(db.JSON)
+    download_count = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# Initialize database
+with app.app_context():
+    db.create_all()
+
+# Core Routes
+@app.route('/')
+def index():
+    """Serve the main application"""
+    return render_template('index.html')
+
+@app.route('/api/generate', methods=['POST'])
+@limiter.limit("10 per minute")
+def generate_business_intelligence():
+    """Generate business intelligence from user input"""
+    try:
+        start_time = datetime.utcnow()
+        data = request.json
+        
+        if not data or 'input' not in data:
+            return jsonify({'success': False, 'error': 'No input provided'}), 400
+            
+        user_input = data.get('input', '').strip()
+        
+        if not user_input:
+            return jsonify({'success': False, 'error': 'Empty input provided'}), 400
+        
+        # Process with OperatorOS Business Intelligence System
+        response = generate_strategic_intelligence(user_input)
+        
+        # Calculate processing time
+        processing_time = (datetime.utcnow() - start_time).total_seconds()
+        
+        # Save to database
+        conversation = Conversation(
+            session_id=session.get('session_id', str(uuid.uuid4())),
+            business_input=user_input,
+            generated_response=response,
+            processing_time=processing_time
+        )
+        db.session.add(conversation)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'response': response,
+            'processing_time': processing_time,
+            'conversation_id': conversation.id
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Processing error: {str(e)}'
+        }), 500
+
+@app.route('/api/soulprint/extract', methods=['POST'])
+@limiter.limit("5 per minute")
+def extract_soulprint():
+    """Extract soulprint from voice answers and generate personalized project"""
+    try:
+        start_time = datetime.utcnow()
+        data = request.json
+        
+        answers = data.get('answers', [])
+        if len(answers) != 10:
+            return jsonify({'success': False, 'error': 'Exactly 10 answers required'}), 400
+        
+        # Process soulprint analysis
+        soulprint = analyze_soulprint(answers)
+        
+        # Generate personalized project
+        project = generate_personalized_project(soulprint)
+        
+        # Save to database
+        conversation = Conversation(
+            session_id=session.get('session_id', str(uuid.uuid4())),
+            voice_answers=answers,
+            soulprint_analysis=soulprint,
+            project_type=project['type'],
+            project_id=project['id'],
+            processing_time=(datetime.utcnow() - start_time).total_seconds()
+        )
+        db.session.add(conversation)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'soulprint': soulprint,
+            'project_id': project['id'],
+            'project_type': project['type'],
+            'download_ready': True
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Soulprint processing error: {str(e)}'
+        }), 500
+
+@app.route('/api/flow/generate', methods=['POST'])
+@limiter.limit("20 per minute")
+def generate_daily_flow():
+    """Generate daily flow optimization plan"""
+    try:
+        data = request.json
+        
+        energy = data.get('energy')
+        priority = data.get('priority', '').strip()
+        open_loops = data.get('open_loops', '').strip()
+        
+        if not energy or not priority:
+            return jsonify({'success': False, 'error': 'Energy level and priority required'}), 400
+        
+        # Generate flow plan
+        flow_plan = generate_flow_plan(energy, priority, open_loops)
+        
+        return jsonify({
+            'success': True,
+            'response': flow_plan,
+            'processing_time': 1.5
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Flow generation error: {str(e)}'
+        }), 500
+
+@app.route('/download/<project_id>')
+def download_project(project_id):
+    """Download generated project as ZIP file"""
+    try:
+        # Get project from database
+        conversation = Conversation.query.filter_by(project_id=project_id).first()
+        if not conversation:
+            return jsonify({'error': 'Project not found'}), 404
+        
+        # Generate ZIP file
+        zip_path = create_project_zip(conversation)
+        
+        # Update download count
+        download = ProjectDownload.query.filter_by(id=project_id).first()
+        if download:
+            download.download_count += 1
+            db.session.commit()
+        
+        return send_file(
+            zip_path,
+            as_attachment=True,
+            download_name=f'OperatorOS_Project_{project_id[:8]}.zip',
+            mimetype='application/zip'
+        )
+        
+    except Exception as e:
+        return jsonify({'error': f'Download error: {str(e)}'}), 500
+
+# AI Processing Functions
+def generate_strategic_intelligence(user_input):
+    """Generate comprehensive business intelligence using OperatorOS C-Suite agents"""
+    
+    system_prompt = """You are the OperatorOS Executive Intelligence Platform - a complete C-Suite advisory board.
+    
+    Analyze the business challenge and provide strategic intelligence from multiple executive perspectives:
+    
+    🔬 ANALYST (Strategy): Market analysis and strategic recommendations
+    📊 RESEARCHER (Intelligence): Competitive landscape and opportunity assessment  
+    📝 WRITER (Communication): Clear implementation roadmap and next steps
+    🎯 REFINER (Optimization): Risk assessment and success metrics
+    
+    Format your response as a comprehensive strategic intelligence brief with:
+    - Executive Summary (3 key insights)
+    - Strategic Analysis (market position and opportunities)
+    - Implementation Roadmap (specific actionable steps)
+    - Success Metrics (KPIs and measurement framework)
+    - Risk Mitigation (potential challenges and solutions)
+    
+    Keep it executive-level: strategic, actionable, and results-focused."""
+    
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_input}
+            ],
+            max_tokens=1500,
+            temperature=0.7
+        )
+        
+        return response.choices[0].message.content
+        
+    except Exception as e:
+        return f"Strategic Intelligence Generation Error: {str(e)}"
+
+def analyze_soulprint(answers):
+    """Analyze voice answers to extract personal soulprint patterns"""
+    
+    system_prompt = """You are the OperatorOS Soulprint Extraction Agent. Analyze these 10 voice-transcribed answers to identify:
+
+    CORE PATTERNS:
+    - Loop Patterns: How they think, process, and complete tasks
+    - Friction Points: Where they get stuck, overwhelmed, or lose momentum
+    - Personal Strengths: Natural abilities, energy sources, optimal conditions
+    - Decision Making Style: Analytical vs intuitive, fast vs deliberate
+    - Energy Rhythms: When they perform best, how they recharge
+    - Work Preferences: Solo vs collaborative, structured vs flexible
+    - Growth Areas: Patterns they want to change or improve
+
+    TECHNICAL ASSESSMENT:
+    - Technical Skill Level: Beginner, Intermediate, Advanced
+    - Preferred Tools: Code-based or content-based solutions
+    - Learning Style: Visual, auditory, kinesthetic, reading/writing
+
+    Return a JSON object with structured soulprint analysis."""
+    
+    answers_text = "\n".join([f"Q{i+1}: {answer}" for i, answer in enumerate(answers)])
+    
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": answers_text}
+            ],
+            max_tokens=1000,
+            temperature=0.3
+        )
+        
+        # Parse JSON response
+        content = response.choices[0].message.content
+        return json.loads(content) if content.startswith('{') else {'analysis': content}
+        
+    except Exception as e:
+        return {'error': f'Soulprint analysis failed: {str(e)}'}
+
+def generate_personalized_project(soulprint):
+    """Generate personalized OperatorOS project based on soulprint"""
+    
+    project_id = str(uuid.uuid4())
+    
+    # Determine project type based on technical level
+    is_technical = soulprint.get('technical_level', 'beginner').lower() in ['intermediate', 'advanced']
+    project_type = 'code_based' if is_technical else 'content_based'
+    
+    return {
+        'id': project_id,
+        'type': project_type,
+        'soulprint': soulprint,
+        'created_at': datetime.utcnow().isoformat()
+    }
+
+def generate_flow_plan(energy, priority, open_loops):
+    """Generate daily flow optimization plan"""
+    
+    system_prompt = f"""You are the OperatorOS Flow Agent. Generate a personalized daily flow plan based on:
+
+    Energy Level: {energy}
+    Main Priority: {priority}
+    Open Loops: {open_loops}
+
+    Create a markdown-formatted daily plan with:
+    ## Today's Flow Plan
+    ### Action Plan
+    [1-3 actions max, respecting energy level]
+    
+    ### Reflection
+    [What you're reflecting back about priorities]
+    
+    ### Loop Log
+    [How to handle open loops - reschedule, delegate, or drop]
+    
+    ### Energy Optimization
+    [Suggestions for working with current energy level]
+    
+    Keep it practical, actionable, and energy-appropriate."""
+    
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Energy: {energy}, Priority: {priority}, Loops: {open_loops}"}
+            ],
+            max_tokens=800,
+            temperature=0.7
+        )
+        
+        return response.choices[0].message.content
+        
+    except Exception as e:
+        return f"Flow generation error: {str(e)}"
+
+def create_project_zip(conversation):
+    """Create downloadable ZIP file with personalized OperatorOS project"""
+    
+    # Create temporary directory
+    temp_dir = tempfile.mkdtemp()
+    project_dir = Path(temp_dir) / f"OperatorOS_Project_{conversation.project_id[:8]}"
+    project_dir.mkdir()
+    
+    # Determine project type
+    is_code_based = conversation.project_type == 'code_based'
+    
+    # Create README.md
+    readme_content = f"""# OperatorOS - Your Personalized Operating System
+
+## Quick Start
+1. Review your soulprint analysis in `thoughts.md`
+2. Follow the implementation guide
+3. Start with the first action item
+
+## What This Does
+This is your personalized OperatorOS project, generated from your unique soulprint patterns.
+
+## Your Soulprint Summary
+{json.dumps(conversation.soulprint_analysis, indent=2) if conversation.soulprint_analysis else 'Personal optimization system'}
+
+## Next Steps
+1. Read through all documentation
+2. Implement the core system
+3. Begin daily optimization practices
+
+Generated by OperatorOS - {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}
+"""
+    
+    with open(project_dir / "README.md", 'w') as f:
+        f.write(readme_content)
+    
+    # Create thoughts.md with soulprint analysis
+    thoughts_content = f"""# Your OperatorOS Soulprint Analysis
+
+## Core Patterns Identified
+{json.dumps(conversation.soulprint_analysis, indent=2) if conversation.soulprint_analysis else 'Comprehensive personal analysis'}
+
+## Implementation Strategy
+Based on your unique patterns, this system is designed to optimize your personal operating system.
+
+## Growth Pathway
+- Start with daily flow optimization
+- Build systematic approaches to your friction points
+- Leverage your natural strengths
+- Implement energy-aligned working patterns
+
+## Personalization Notes
+This system reflects your specific thinking patterns, energy rhythms, and optimal working conditions.
+"""
+    
+    with open(project_dir / "thoughts.md", 'w') as f:
+        f.write(thoughts_content)
+    
+    if is_code_based:
+        # Create Python project structure
+        main_py_content = f"""#!/usr/bin/env python3
+\"\"\"
+OperatorOS - Personal Operating System
+Generated from your unique soulprint analysis
+\"\"\"
+
+import json
+from datetime import datetime
+
+class PersonalOperatorOS:
+    def __init__(self):
+        self.soulprint = {json.dumps(conversation.soulprint_analysis, indent=8) if conversation.soulprint_analysis else '{}'}
+        self.daily_log = []
+    
+    def daily_checkin(self, energy_level, priority, open_loops):
+        \"\"\"Daily optimization check-in\"\"\"
+        entry = {{
+            'date': datetime.now().isoformat(),
+            'energy': energy_level,
+            'priority': priority,
+            'open_loops': open_loops,
+            'status': 'active'
+        }}
+        self.daily_log.append(entry)
+        return self.generate_flow_plan(entry)
+    
+    def generate_flow_plan(self, entry):
+        \"\"\"Generate personalized flow plan\"\"\"
+        # Implement your personalized optimization logic here
+        return f"Flow plan for {{entry['energy']}} energy day"
+    
+    def analyze_patterns(self):
+        \"\"\"Analyze personal patterns over time\"\"\"
+        return {{
+            'total_days': len(self.daily_log),
+            'energy_patterns': 'Analysis coming soon',
+            'productivity_trends': 'Tracking in progress'
+        }}
+
+if __name__ == "__main__":
+    ops = PersonalOperatorOS()
+    print("OperatorOS - Your Personal Operating System")
+    print("Run daily_checkin() to start optimization")
+"""
+        
+        with open(project_dir / "main.py", 'w') as f:
+            f.write(main_py_content)
+        
+        # Create requirements.txt
+        requirements_content = """# OperatorOS Dependencies
+datetime
+json
+"""
+        
+        with open(project_dir / "requirements.txt", 'w') as f:
+            f.write(requirements_content)
+        
+        # Create config.json
+        config_content = {
+            "project_name": f"OperatorOS_{conversation.project_id[:8]}",
+            "user_type": "code_based",
+            "soulprint_summary": conversation.soulprint_analysis,
+            "created_at": datetime.utcnow().isoformat()
+        }
+        
+        with open(project_dir / "config.json", 'w') as f:
+            json.dump(config_content, f, indent=2)
+    
+    else:
+        # Create content-based project structure
+        data_config_content = {
+            "user_profile": conversation.soulprint_analysis,
+            "optimization_settings": {
+                "energy_tracking": True,
+                "priority_focus": True,
+                "loop_management": True
+            },
+            "ui_preferences": {
+                "theme": "professional",
+                "layout": "dashboard",
+                "notifications": True
+            }
+        }
+        
+        with open(project_dir / "data_config.json", 'w') as f:
+            json.dump(data_config_content, f, indent=2)
+        
+        # Create user_profile.json
+        with open(project_dir / "user_profile.json", 'w') as f:
+            json.dump(conversation.soulprint_analysis or {}, f, indent=2)
+        
+        # Create simple API endpoints
+        api_content = """# OperatorOS API Integration Points
+
+from flask import Flask, jsonify, request
+
+app = Flask(__name__)
+
+@app.route('/api/daily-checkin', methods=['POST'])
+def daily_checkin():
+    data = request.json
+    # Process daily optimization
+    return jsonify({'status': 'success', 'plan': 'Generated flow plan'})
+
+@app.route('/api/soulprint', methods=['GET'])
+def get_soulprint():
+    # Return user's soulprint data
+    return jsonify({'soulprint': 'Your personalized analysis'})
+
+if __name__ == '__main__':
+    app.run(debug=True)
+"""
+        
+        with open(project_dir / "api_endpoints.py", 'w') as f:
+            f.write(api_content)
+    
+    # Create ZIP file
+    zip_path = Path(temp_dir) / f"OperatorOS_Project_{conversation.project_id[:8]}.zip"
+    
+    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for file_path in project_dir.rglob('*'):
+            if file_path.is_file():
+                arcname = file_path.relative_to(project_dir)
+                zipf.write(file_path, arcname)
+    
+    return str(zip_path)
+
+# Error handlers
+@app.errorhandler(404)
+def not_found(error):
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'Resource not found'}), 404
+    return render_template('index.html'), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    db.session.rollback()
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'Internal server error'}), 500
+    return render_template('index.html'), 500
+
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    return jsonify({
+        'error': 'Rate limit exceeded',
+        'message': f'Too many requests. Try again in {e.retry_after} seconds.'
+    }), 429
+
+if __name__ == '__main__':
+    # Ensure session ID
+    if 'session_id' not in session:
+        session['session_id'] = str(uuid.uuid4())
+    
+    app.run(host='0.0.0.0', port=5000, debug=True)
+```
+
+### 2. Enhanced Frontend with Voice Integration
+Create/update your `templates/index.html`:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OperatorOS - Complete Executive Intelligence Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .platform-header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .platform-header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+        }
+
+        .mode-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .mode-tab {
+            padding: 1rem 2rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            color: #fff;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .mode-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .mode-tab:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .content-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 2rem;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-control {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .form-control:focus {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: #667eea;
+            color: #fff;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+
+        .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .voice-controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            margin-top: 1rem;
+        }
+
+        .voice-btn {
+            background: rgba(220, 53, 69, 0.2);
+            border: 2px solid #dc3545;
+            color: #fff;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .voice-btn.recording {
+            background: #dc3545;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .response-panel {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .loading-spinner {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .spinner-border {
+            color: #667eea;
+        }
+
+        .question-modal .modal-content {
+            background: rgba(26, 26, 46, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(15px);
+        }
+
+        .progress {
+            background: rgba(255, 255, 255, 0.1);
+            height: 8px;
+            border-radius: 4px;
+        }
+
+        .progress-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Platform Header -->
+        <div class="platform-header">
+            <h1><i class="fas fa-brain"></i> OperatorOS</h1>
+            <p class="lead">Complete Executive Intelligence Platform</p>
+            <p class="text-muted">Transform any business challenge into strategic intelligence with your personal C-Suite advisory board</p>
+        </div>
+
+        <!-- Mode Navigation -->
+        <div class="mode-tabs">
+            <div class="mode-tab active" data-mode="business">
+                <i class="fas fa-chart-line"></i> Business Intelligence
+            </div>
+            <div class="mode-tab" data-mode="soulprint">
+                <i class="fas fa-user-circle"></i> Soulprint Extraction
+            </div>
+            <div class="mode-tab" data-mode="flow">
+                <i class="fas fa-brain"></i> Daily Flow
+            </div>
+        </div>
+
+        <!-- Business Intelligence Panel -->
+        <div id="business-panel" class="content-panel">
+            <h2><i class="fas fa-lightbulb"></i> Business Intelligence Generator</h2>
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> 
+                <strong>Universal Business Package:</strong> Every prompt generates a comprehensive 10-file strategic intelligence package with analysis from our complete C-Suite advisory board.
+            </div>
+            
+            <div class="input-group">
+                <textarea 
+                    id="business-input" 
+                    class="form-control" 
+                    rows="4" 
+                    placeholder="Describe your business challenge, opportunity, or strategic question..."></textarea>
+                
+                <div class="voice-controls">
+                    <button id="voice-business-btn" class="voice-btn">
+                        <i class="fas fa-microphone"></i> Voice Input
+                    </button>
+                    <span id="voice-status" class="text-muted small"></span>
+                </div>
+            </div>
+            
+            <div class="text-center">
+                <button id="generate-intelligence-btn" class="btn btn-primary btn-lg">
+                    <i class="fas fa-rocket"></i> Generate Business Intelligence
+                </button>
+                <button id="clear-business-btn" class="btn btn-outline-secondary ms-2">
+                    <i class="fas fa-eraser"></i> Clear
+                </button>
+            </div>
+            
+            <div id="business-response" class="response-panel hidden"></div>
+        </div>
+
+        <!-- Soulprint Extraction Panel -->
+        <div id="soulprint-panel" class="content-panel hidden">
+            <h2><i class="fas fa-user-circle"></i> Soulprint Extraction</h2>
+            <p class="text-muted">Answer 10 voice questions to generate your personalized OperatorOS project</p>
+            
+            <div class="text-center">
+                <button id="start-soulprint-btn" class="btn btn-primary btn-lg">
+                    <i class="fas fa-microphone"></i> Start Voice Soulprint
+                </button>
+            </div>
+            
+            <div id="soulprint-response" class="response-panel hidden"></div>
+        </div>
+
+        <!-- Daily Flow Panel -->
+        <div id="flow-panel" class="content-panel hidden">
+            <h2><i class="fas fa-brain"></i> Daily Flow Optimization</h2>
+            <p class="text-muted">Your AI team analyzes energy, priorities, and optimization opportunities</p>
+            
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <label class="form-label">Energy Level Today</label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="energy" id="energy-high" value="high">
+                            <label class="btn btn-outline-success" for="energy-high">
+                                <i class="fas fa-bolt"></i> High
+                            </label>
+                            
+                            <input type="radio" class="btn-check" name="energy" id="energy-medium" value="medium">
+                            <label class="btn btn-outline-warning" for="energy-medium">
+                                <i class="fas fa-sun"></i> Medium
+                            </label>
+                            
+                            <input type="radio" class="btn-check" name="energy" id="energy-low" value="low">
+                            <label class="btn btn-outline-danger" for="energy-low">
+                                <i class="fas fa-moon"></i> Low
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <label class="form-label">One Thing to Complete Today</label>
+                        <textarea id="priority-input" class="form-control" rows="3" placeholder="What's the ONE thing that would make today feel successful?"></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="input-group">
+                <label class="form-label">Open Loops from Yesterday</label>
+                <textarea id="loops-input" class="form-control" rows="3" placeholder="What unfinished tasks or thoughts are creating mental noise?"></textarea>
+            </div>
+            
+            <div class="text-center">
+                <button id="generate-flow-btn" class="btn btn-primary btn-lg">
+                    <i class="fas fa-brain"></i> Optimize Today's Flow
+                </button>
+            </div>
+            
+            <div id="flow-response" class="response-panel hidden"></div>
+        </div>
+    </div>
+
+    <!-- Soulprint Questions Modal -->
+    <div class="modal fade" id="soulprintModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">OperatorOS Soulprint Extraction</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="progress mb-3">
+                        <div class="progress-bar" id="question-progress" style="width: 10%"></div>
+                    </div>
+                    
+                    <div id="question-display">
+                        <h4 id="current-question"></h4>
+                        <p class="text-muted" id="question-subtitle"></p>
+                    </div>
+                    
+                    <div class="text-center my-4">
+                        <button id="start-voice-btn" class="btn btn-primary btn-lg">
+                            <i class="fas fa-microphone"></i> Start Speaking
+                        </button>
+                        <button id="stop-voice-btn" class="btn btn-danger btn-lg hidden">
+                            <i class="fas fa-stop"></i> Stop Recording
+                        </button>
+                    </div>
+                    
+                    <div id="transcript-display" class="response-panel hidden">
+                        <h6>Your Response:</h6>
+                        <div id="transcript-text"></div>
+                        <div class="text-center mt-3">
+                            <button id="next-question-btn" class="btn btn-success">
+                                <i class="fas fa-arrow-right"></i> Next Question
+                            </button>
+                            <button id="retry-voice-btn" class="btn btn-outline-warning">
+                                <i class="fas fa-redo"></i> Record Again
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global Variables
+        let recognition;
+        let currentQuestionIndex = 0;
+        let soulprintAnswers = [];
+        let currentMode = 'business';
+
+        const soulprintQuestions = [
+            {
+                question: "How do you prefer to start your day?",
+                subtitle: "Think about your ideal morning routine and what energizes you"
+            },
+            {
+                question: "What type of work environment makes you most productive?",
+                subtitle: "Consider noise levels, collaboration, structure, and space"
+            },
+            {
+                question: "When do you feel most creative and focused?",
+                subtitle: "Time of day, conditions, and circumstances that unlock your best thinking"
+            },
+            {
+                question: "How do you prefer to make important decisions?",
+                subtitle: "Your natural decision-making process and information needs"
+            },
+            {
+                question: "What energizes you most in your work or projects?",
+                subtitle: "Activities, interactions, or achievements that give you energy"
+            },
+            {
+                question: "What tends to drain your energy or create friction?",
+                subtitle: "Situations, tasks, or patterns that slow you down or frustrate you"
+            },
+            {
+                question: "How do you prefer to learn new skills or information?",
+                subtitle: "Your natural learning style and preferred methods"
+            },
+            {
+                question: "What does your ideal work-life balance look like?",
+                subtitle: "How you prefer to structure your time and priorities"
+            },
+            {
+                question: "How do you handle stress and pressure?",
+                subtitle: "Your natural coping mechanisms and what helps you stay centered"
+            },
+            {
+                question: "What would your ideal operating system for life include?",
+                subtitle: "Tools, systems, or approaches that would make everything easier"
+            }
+        ];
+
+        // Initialize Application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeVoiceRecognition();
+            setupEventListeners();
+            loadPreferredMode();
+        });
+
+        // Voice Recognition Setup
+        function initializeVoiceRecognition() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = true;
+                recognition.lang = 'en-US';
+
+                recognition.onstart = function() {
+                    updateVoiceStatus('Listening...', 'recording');
+                };
+
+                recognition.onresult = function(event) {
+                    const transcript = event.results[0][0].transcript;
+                    updateTranscript(transcript);
+                };
+
+                recognition.onend = function() {
+                    updateVoiceStatus('', 'stopped');
+                };
+
+                recognition.onerror = function(event) {
+                    updateVoiceStatus(`Error: ${event.error}`, 'error');
+                };
+            } else {
+                console.warn('Speech recognition not supported');
+            }
+        }
+
+        // Event Listeners
+        function setupEventListeners() {
+            // Mode switching
+            document.querySelectorAll('.mode-tab').forEach(tab => {
+                tab.addEventListener('click', () => switchMode(tab.dataset.mode));
+            });
+
+            // Business Intelligence
+            document.getElementById('generate-intelligence-btn').addEventListener('click', generateBusinessIntelligence);
+            document.getElementById('clear-business-btn').addEventListener('click', clearBusinessInput);
+            document.getElementById('voice-business-btn').addEventListener('click', startBusinessVoice);
+
+            // Soulprint Extraction
+            document.getElementById('start-soulprint-btn').addEventListener('click', startSoulprintExtraction);
+            document.getElementById('start-voice-btn').addEventListener('click', startQuestionVoice);
+            document.getElementById('stop-voice-btn').addEventListener('click', stopVoice);
+            document.getElementById('next-question-btn').addEventListener('click', nextQuestion);
+            document.getElementById('retry-voice-btn').addEventListener('click', retryVoice);
+
+            // Daily Flow
+            document.getElementById('generate-flow-btn').addEventListener('click', generateDailyFlow);
+        }
+
+        // Mode Management
+        function switchMode(mode) {
+            // Update tab appearance
+            document.querySelectorAll('.mode-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.mode === mode);
+            });
+
+            // Show/hide panels
+            document.querySelectorAll('.content-panel').forEach(panel => {
+                panel.classList.add('hidden');
+            });
+            document.getElementById(`${mode}-panel`).classList.remove('hidden');
+
+            currentMode = mode;
+            localStorage.setItem('preferredMode', mode);
+        }
+
+        function loadPreferredMode() {
+            const preferredMode = localStorage.getItem('preferredMode') || 'business';
+            switchMode(preferredMode);
+        }
+
+        // Business Intelligence Functions
+        async function generateBusinessIntelligence() {
+            const input = document.getElementById('business-input').value.trim();
+            if (!input) {
+                alert('Please describe your business challenge or opportunity.');
+                return;
+            }
+
+            const btn = document.getElementById('generate-intelligence-btn');
+            const responsePanel = document.getElementById('business-response');
+
+            // Show loading
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating Intelligence...';
+            responsePanel.classList.remove('hidden');
+            responsePanel.innerHTML = `
+                <div class="loading-spinner">
+                    <div class="spinner-border" role="status"></div>
+                    <p class="mt-2">Analyzing with complete C-Suite advisory board...</p>
+                </div>
+            `;
+
+            try {
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ input: input })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    responsePanel.innerHTML = `
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5><i class="fas fa-check-circle text-success"></i> Strategic Intelligence Generated</h5>
+                            <small class="text-muted">Generated in ${result.processing_time?.toFixed(2) || 0}s</small>
+                        </div>
+                        <div class="intelligence-content">
+                            ${marked.parse(result.response)}
+                        </div>
+                        <div class="text-center mt-3">
+                            <button onclick="downloadIntelligence('${result.conversation_id}')" class="btn btn-success">
+                                <i class="fas fa-download"></i> Download Strategic Package
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    throw new Error(result.error || 'Unknown error occurred');
+                }
+
+            } catch (error) {
+                responsePanel.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i> Error generating intelligence: ${error.message}
+                        <div class="mt-2">
+                            <button onclick="generateBusinessIntelligence()" class="btn btn-sm btn-outline-danger">
+                                <i class="fas fa-retry"></i> Try Again
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-rocket"></i> Generate Business Intelligence';
+            }
+        }
+
+        function clearBusinessInput() {
+            document.getElementById('business-input').value = '';
+            document.getElementById('business-response').classList.add('hidden');
+        }
+
+        function startBusinessVoice() {
+            if (recognition) {
+                recognition.onresult = function(event) {
+                    const transcript = event.results[0][0].transcript;
+                    document.getElementById('business-input').value = transcript;
+                };
+                recognition.start();
+            }
+        }
+
+        // Soulprint Extraction Functions
+        function startSoulprintExtraction() {
+            currentQuestionIndex = 0;
+            soulprintAnswers = [];
+            showQuestion();
+            new bootstrap.Modal(document.getElementById('soulprintModal')).show();
+        }
+
+        function showQuestion() {
+            const question = soulprintQuestions[currentQuestionIndex];
+            document.getElementById('current-question').textContent = question.question;
+            document.getElementById('question-subtitle').textContent = question.subtitle;
+            
+            const progress = ((currentQuestionIndex + 1) / soulprintQuestions.length) * 100;
+            document.getElementById('question-progress').style.width = `${progress}%`;
+            
+            // Reset UI state
+            document.getElementById('transcript-display').classList.add('hidden');
+            document.getElementById('start-voice-btn').classList.remove('hidden');
+            document.getElementById('stop-voice-btn').classList.add('hidden');
+        }
+
+        function startQuestionVoice() {
+            if (recognition) {
+                document.getElementById('start-voice-btn').classList.add('hidden');
+                document.getElementById('stop-voice-btn').classList.remove('hidden');
+                
+                recognition.onresult = function(event) {
+                    const transcript = event.results[0][0].transcript;
+                    updateTranscript(transcript);
+                    
+                    if (event.results[0].isFinal) {
+                        document.getElementById('transcript-display').classList.remove('hidden');
+                        document.getElementById('start-voice-btn').classList.remove('hidden');
+                        document.getElementById('stop-voice-btn').classList.add('hidden');
+                    }
+                };
+                
+                recognition.start();
+            }
+        }
+
+        function stopVoice() {
+            if (recognition) {
+                recognition.stop();
+            }
+        }
+
+        function updateTranscript(transcript) {
+            document.getElementById('transcript-text').textContent = transcript;
+        }
+
+        function updateVoiceStatus(message, state) {
+            const statusEl = document.getElementById('voice-status');
+            if (statusEl) {
+                statusEl.textContent = message;
+                statusEl.className = `text-muted small ${state}`;
+            }
+        }
+
+        function nextQuestion() {
+            const transcript = document.getElementById('transcript-text').textContent;
+            soulprintAnswers[currentQuestionIndex] = transcript;
+            
+            currentQuestionIndex++;
+            
+            if (currentQuestionIndex < soulprintQuestions.length) {
+                showQuestion();
+            } else {
+                processSoulprint();
+            }
+        }
+
+        function retryVoice() {
+            document.getElementById('transcript-display').classList.add('hidden');
+            startQuestionVoice();
+        }
+
+        async function processSoulprint() {
+            bootstrap.Modal.getInstance(document.getElementById('soulprintModal')).hide();
+            
+            const responsePanel = document.getElementById('soulprint-response');
+            responsePanel.classList.remove('hidden');
+            responsePanel.innerHTML = `
+                <div class="loading-spinner">
+                    <div class="spinner-border" role="status"></div>
+                    <p class="mt-2">Extracting your soulprint and generating personalized OperatorOS...</p>
+                </div>
+            `;
+
+            try {
+                const response = await fetch('/api/soulprint/extract', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ answers: soulprintAnswers })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    responsePanel.innerHTML = `
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5><i class="fas fa-check-circle text-success"></i> Soulprint Extracted</h5>
+                            <span class="badge bg-primary">${result.project_type.replace('_', ' ').toUpperCase()}</span>
+                        </div>
+                        <div class="soulprint-summary">
+                            <h6>Your Soulprint Summary:</h6>
+                            <pre>${JSON.stringify(result.soulprint, null, 2)}</pre>
+                        </div>
+                        <div class="text-center mt-3">
+                            <a href="/download/${result.project_id}" class="btn btn-success btn-lg">
+                                <i class="fas fa-download"></i> Download Your OperatorOS Project
+                            </a>
+                        </div>
+                    `;
+                } else {
+                    throw new Error(result.error || 'Soulprint extraction failed');
+                }
+
+            } catch (error) {
+                responsePanel.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i> Error processing soulprint: ${error.message}
+                        <div class="mt-2">
+                            <button onclick="startSoulprintExtraction()" class="btn btn-sm btn-outline-danger">
+                                <i class="fas fa-retry"></i> Try Again
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Daily Flow Functions
+        async function generateDailyFlow() {
+            const energy = document.querySelector('input[name="energy"]:checked')?.value;
+            const priority = document.getElementById('priority-input').value.trim();
+            const openLoops = document.getElementById('loops-input').value.trim();
+
+            if (!energy) {
+                alert('Please select your energy level.');
+                return;
+            }
+
+            if (!priority) {
+                alert('Please describe your main priority for today.');
+                return;
+            }
+
+            const btn = document.getElementById('generate-flow-btn');
+            const responsePanel = document.getElementById('flow-response');
+
+            // Show loading
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Optimizing Flow...';
+            responsePanel.classList.remove('hidden');
+            responsePanel.innerHTML = `
+                <div class="loading-spinner">
+                    <div class="spinner-border" role="status"></div>
+                    <p class="mt-2">Generating your personalized flow plan...</p>
+                </div>
+            `;
+
+            try {
+                const response = await fetch('/api/flow/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        energy: energy,
+                        priority: priority,
+                        open_loops: openLoops
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    responsePanel.innerHTML = `
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5><i class="fas fa-check-circle text-success"></i> Your Daily Flow Plan</h5>
+                            <small class="text-muted">Generated in ${result.processing_time?.toFixed(2) || 0}s</small>
+                        </div>
+                        <div class="flow-content">
+                            ${marked.parse(result.response)}
+                        </div>
+                    `;
+                } else {
+                    throw new Error(result.error || 'Flow generation failed');
+                }
+
+            } catch (error) {
+                responsePanel.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i> Error generating flow plan: ${error.message}
+                        <div class="mt-2">
+                            <button onclick="generateDailyFlow()" class="btn btn-sm btn-outline-danger">
+                                <i class="fas fa-retry"></i> Try Again
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-brain"></i> Optimize Today\'s Flow';
+            }
+        }
+
+        // Utility Functions
+        function downloadIntelligence(conversationId) {
+            // For now, just show success message
+            // In future, implement actual intelligence package download
+            alert('Strategic intelligence package download would start here. Feature coming soon!');
+        }
+    </script>
+</body>
+</html>
+```
+
+### 3. Environment Configuration
+Add these to your Replit Secrets:
+
+```
+OPENAI_API_KEY=your-actual-openai-api-key-here
+SECRET_KEY=your-secret-key-for-sessions
+DATABASE_URL=sqlite:///operatoros.db
+```
+
+### 4. Requirements.txt
+```
+Flask==3.1.1
+Flask-SQLAlchemy==3.1.1
+Flask-Limiter==3.12
+openai==1.93.2
+python-dotenv==1.0.0
+gunicorn==23.0.0
+```
+
+## Success Verification
+
+After implementation, your platform will have:
+
+1. **✅ Fixed Network Error** - All API endpoints properly configured
+2. **✅ Business Intelligence Generator** - Complete C-Suite analysis system
+3. **✅ Voice-First Soulprint Extraction** - 10-question personalized project generation
+4. **✅ Daily Flow Optimization** - Energy-based productivity planning
+5. **✅ Download System** - ZIP packages with complete OperatorOS projects
+6. **✅ Professional UI** - Modern, responsive interface with animations
+7. **✅ Error Handling** - Robust error management and user feedback
+8. **✅ Database Integration** - Persistent conversation and project storage
+
+## Test Checklist
+
+1. **Network Fix**: Business Intelligence button works without errors
+2. **Voice Integration**: Speech recognition captures input accurately
+3. **Soulprint Flow**: 10 questions → analysis → project download
+4. **Daily Flow**: Energy/priority → personalized optimization plan
+5. **Downloads**: ZIP files generate and download successfully
+6. **Responsive UI**: Works on desktop and mobile devices
+
+Your OperatorOS platform will be fully operational with all advanced features!
