@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OperatorOS Voice-First Onboarding</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            min-height: 100vh; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .main-card { 
+            border: none; 
+            border-radius: 20px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+        }
+        .btn-primary { 
+            background: linear-gradient(45deg, #667eea, #764ba2); 
+            border: none; 
+            border-radius: 50px;
+            padding: 12px 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        .progress { 
+            height: 12px; 
+            border-radius: 10px; 
+            background: rgba(102, 126, 234, 0.1);
+        }
+        .progress-bar {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+        .question-card { 
+            min-height: 300px; 
+            border-radius: 15px;
+            background: linear-gradient(145deg, #f8f9fa, #e9ecef);
+            border: 1px solid rgba(102, 126, 234, 0.1);
+            transition: all 0.3s ease;
+        }
+        .question-card.active {
+            transform: scale(1.02);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+        }
+        .voice-indicator {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            transition: all 0.3s ease;
+        }
+        .voice-indicator.recording {
+            animation: pulse 1.5s infinite;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.7); }
+            70% { transform: scale(1.1); box-shadow: 0 0 0 20px rgba(255, 107, 107, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 107, 107, 0); }
+        }
+        .transcript-display {
+            background: rgba(102, 126, 234, 0.05);
+            border: 2px dashed rgba(102, 126, 234, 0.2);
+            border-radius: 10px;
+            min-height: 80px;
+            padding: 15px;
+            margin: 15px 0;
+            font-style: italic;
+            color: #666;
+        }
+        .transcript-display.has-content {
+            background: rgba(102, 126, 234, 0.1);
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            color: #333;
+            font-style: normal;
+        }
+        .completion-card {
+            background: linear-gradient(145deg, #e8f5e8, #d4edda);
+            border: 2px solid #28a745;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+        }
+        .completion-icon {
+            font-size: 4rem;
+            color: #28a745;
+            margin-bottom: 20px;
+        }
+        .processing-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        .processing-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 400px;
+        }
+        .spinner-border-lg {
+            width: 4rem;
+            height: 4rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Processing Overlay -->
+    <div class="processing-overlay" id="processingOverlay">
+        <div class="processing-content">
+            <div class="spinner-border spinner-border-lg text-primary mb-4" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <h4>Analyzing Your Soulprint</h4>
+            <p class="text-muted">Our multi-AI system is processing your responses to create your personalized OperatorOS project...</p>
+            <div class="progress mt-4">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 col-xl-7">
+                <div class="main-card card">
+                    <div class="card-body p-5">
+                        <!-- Header -->
+                        <div class="text-center mb-5">
+                            <h1 class="h2 mb-3">
+                                <i class="fas fa-brain text-primary"></i>
+                                OperatorOS Voice Onboarding
+                            </h1>
+                            <p class="text-muted lead">Speak your authentic responses to 10 introspective questions. Our AI will analyze your unique patterns and generate a personalized OperatorOS project.</p>
+                        </div>
+                        
+                        <!-- Progress Section -->
+                        <div class="mb-5" id="progressSection">
+                            <div class="progress mb-2">
+                                <div class="progress-bar" role="progressbar" style="width: 0%" id="progressBar"></div>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted" id="progressText">Ready to begin</small>
+                                <small class="text-muted">
+                                    <i class="fas fa-clock"></i> 
+                                    <span id="timeEstimate">~15 minutes</span>
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <!-- Main Content Area -->
+                        <div id="onboardingContent">
+                            <!-- Welcome Screen -->
+                            <div id="welcomeScreen">
+                                <div class="question-card p-5">
+                                    <div class="text-center">
+                                        <div class="voice-indicator mb-4">
+                                            <i class="fas fa-microphone text-white fa-2x"></i>
+                                        </div>
+                                        <h3 class="mb-4">Discover Your Unique Soulprint</h3>
+                                        <p class="text-muted mb-4">
+                                            Your soulprint reveals how you think, work, and create. Each question explores a different dimension of your personal operating system.
+                                        </p>
+                                        <div class="row mb-4">
+                                            <div class="col-md-4">
+                                                <i class="fas fa-cogs text-primary fa-2x mb-2"></i>
+                                                <h6>Decision Patterns</h6>
+                                                <small class="text-muted">How you process choices</small>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <i class="fas fa-battery-three-quarters text-primary fa-2x mb-2"></i>
+                                                <h6>Energy Rhythms</h6>
+                                                <small class="text-muted">When you perform best</small>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <i class="fas fa-lightbulb text-primary fa-2x mb-2"></i>
+                                                <h6>Creative Flow</h6>
+                                                <small class="text-muted">How you generate ideas</small>
+                                            </div>
+                                        </div>
+                                        <button class="btn btn-primary btn-lg" onclick="startOnboarding()">
+                                            <i class="fas fa-play me-2"></i>
+                                            Begin Voice Onboarding
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Question Screen -->
+                            <div id="questionScreen" class="d-none">
+                                <div class="question-card p-4" id="questionCard">
+                                    <div class="text-center">
+                                        <h4 class="mb-3" id="questionTitle">Question 1</h4>
+                                        <div class="voice-indicator mb-4" id="voiceIndicator">
+                                            <i class="fas fa-microphone text-white fa-2x"></i>
+                                        </div>
+                                        <h5 class="mb-4" id="questionText">Loading question...</h5>
+                                        
+                                        <!-- Transcript Display -->
+                                        <div class="transcript-display" id="transcriptDisplay">
+                                            <i class="fas fa-quote-left text-muted"></i>
+                                            Your response will appear here as you speak...
+                                        </div>
+                                        
+                                        <!-- Recording Controls -->
+                                        <div class="mt-4">
+                                            <button class="btn btn-primary me-3" id="recordBtn" onclick="toggleRecording()">
+                                                <i class="fas fa-microphone me-2"></i>
+                                                Start Speaking
+                                            </button>
+                                            <button class="btn btn-outline-secondary me-2" id="retryBtn" onclick="retryQuestion()" style="display: none;">
+                                                <i class="fas fa-redo me-2"></i>
+                                                Try Again
+                                            </button>
+                                            <button class="btn btn-success" id="nextBtn" onclick="nextQuestion()" disabled>
+                                                <i class="fas fa-arrow-right me-2"></i>
+                                                Next Question
+                                            </button>
+                                        </div>
+                                        
+                                        <!-- Optional Text Input -->
+                                        <div class="mt-3">
+                                            <small class="text-muted d-block mb-2">Or type your response:</small>
+                                            <textarea class="form-control" id="textInput" rows="3" placeholder="Type your answer here (optional)" onchange="handleTextInput()"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Completion Screen -->
+                            <div id="completionScreen" class="d-none">
+                                <div class="completion-card">
+                                    <i class="fas fa-check-circle completion-icon"></i>
+                                    <h3 class="mb-4">Soulprint Analysis Complete!</h3>
+                                    <p class="text-muted mb-4">
+                                        Our multi-AI system has analyzed your responses and generated your personalized OperatorOS project.
+                                    </p>
+                                    <div id="resultsPreview" class="mb-4">
+                                        <!-- Results will be populated here -->
+                                    </div>
+                                    <button class="btn btn-primary btn-lg" onclick="generateProject()">
+                                        <i class="fas fa-download me-2"></i>
+                                        Generate My OperatorOS Project
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Navigation -->
+                <div class="text-center mt-4">
+                    <a href="/" class="text-white text-decoration-none">
+                        <i class="fas fa-arrow-left me-2"></i>
+                        Back to OperatorOS
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Voice onboarding state
+        let currentQuestionIndex = 0;
+        let responses = [];
+        let recognition = null;
+        let isRecording = false;
+        let recordingTimeout = null;
+
+        // 10 Core soulprint questions
+        const questions = [
+            "How do you prefer to start your day? Describe your ideal morning routine and what energizes you most.",
+            "When you're working on something important, what conditions help you focus best? Where, when, and how do you do your best work?",
+            "Think about a recent decision you made. Walk me through your process - how do you typically approach choices?",
+            "What kinds of tasks or activities make you lose track of time? When do you feel most engaged and energized?",
+            "Describe a moment when you felt overwhelmed or stuck. What typically causes you to feel frustrated or blocked?",
+            "How do you prefer to learn new things? What methods work best for you when acquiring new skills or knowledge?",
+            "Tell me about your relationship with technology and tools. Are you someone who loves new systems or prefers simple, proven methods?",
+            "When you have a creative idea or solve a problem, where does that usually happen? Describe your natural creative process.",
+            "How do you handle multiple priorities or projects? What's your approach to managing competing demands on your time?",
+            "If you could design your ideal day with complete freedom, what would it look like? How would you structure your time and energy?"
+        ];
+
+        // Initialize speech recognition
+        function initSpeechRecognition() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                
+                recognition.continuous = true;
+                recognition.interimResults = true;
+                recognition.lang = 'en-US';
+                
+                recognition.onstart = function() {
+                    console.log('Speech recognition started');
+                    isRecording = true;
+                    updateRecordingUI(true);
+                };
+                
+                recognition.onresult = function(event) {
+                    let finalTranscript = '';
+                    let interimTranscript = '';
+                    
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                            finalTranscript += transcript;
+                        } else {
+                            interimTranscript += transcript;
+                        }
+                    }
+                    
+                    const displayText = finalTranscript + interimTranscript;
+                    document.getElementById('transcriptDisplay').innerHTML = displayText || 'Listening...';
+                    
+                    if (finalTranscript) {
+                        responses[currentQuestionIndex] = finalTranscript.trim();
+                        document.getElementById('nextBtn').disabled = false;
+                        document.getElementById('retryBtn').style.display = 'inline-block';
+                        
+                        // Auto-advance after 3 seconds of silence
+                        clearTimeout(recordingTimeout);
+                        recordingTimeout = setTimeout(() => {
+                            stopRecording();
+                        }, 3000);
+                    }
+                };
+                
+                recognition.onerror = function(event) {
+                    console.error('Speech recognition error:', event.error);
+                    stopRecording();
+                    showError('Speech recognition failed. Please try again or type your response.');
+                };
+                
+                recognition.onend = function() {
+                    isRecording = false;
+                    updateRecordingUI(false);
+                };
+                
+                return true;
+            } else {
+                console.warn('Speech recognition not supported');
+                return false;
+            }
+        }
+
+        function startOnboarding() {
+            // Initialize speech recognition
+            if (!initSpeechRecognition()) {
+                alert('Speech recognition is not supported in your browser. You can still use the text input to answer questions.');
+            }
+            
+            // Show question screen
+            document.getElementById('welcomeScreen').classList.add('d-none');
+            document.getElementById('questionScreen').classList.remove('d-none');
+            
+            // Load first question
+            loadQuestion(0);
+            updateProgress();
+        }
+
+        function loadQuestion(index) {
+            currentQuestionIndex = index;
+            document.getElementById('questionTitle').textContent = `Question ${index + 1} of ${questions.length}`;
+            document.getElementById('questionText').textContent = questions[index];
+            document.getElementById('transcriptDisplay').innerHTML = '<i class="fas fa-quote-left text-muted"></i> Your response will appear here as you speak...';
+            document.getElementById('transcriptDisplay').className = 'transcript-display';
+            document.getElementById('textInput').value = '';
+            document.getElementById('nextBtn').disabled = true;
+            document.getElementById('retryBtn').style.display = 'none';
+            
+            // Reset recording state
+            if (isRecording) {
+                stopRecording();
+            }
+        }
+
+        function toggleRecording() {
+            if (!recognition) {
+                alert('Speech recognition is not available. Please type your response instead.');
+                return;
+            }
+            
+            if (isRecording) {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        }
+
+        function startRecording() {
+            if (!recognition) return;
+            
+            try {
+                recognition.start();
+                clearTimeout(recordingTimeout);
+                
+                // Auto-stop after 60 seconds
+                recordingTimeout = setTimeout(() => {
+                    stopRecording();
+                }, 60000);
+            } catch (error) {
+                console.error('Error starting recording:', error);
+                showError('Could not start recording. Please try again.');
+            }
+        }
+
+        function stopRecording() {
+            if (recognition && isRecording) {
+                recognition.stop();
+            }
+            clearTimeout(recordingTimeout);
+        }
+
+        function updateRecordingUI(recording) {
+            const recordBtn = document.getElementById('recordBtn');
+            const voiceIndicator = document.getElementById('voiceIndicator');
+            
+            if (recording) {
+                recordBtn.innerHTML = '<i class="fas fa-stop me-2"></i>Stop Recording';
+                recordBtn.className = 'btn btn-danger me-3';
+                voiceIndicator.classList.add('recording');
+                document.getElementById('transcriptDisplay').innerHTML = 'Listening...';
+            } else {
+                recordBtn.innerHTML = '<i class="fas fa-microphone me-2"></i>Start Speaking';
+                recordBtn.className = 'btn btn-primary me-3';
+                voiceIndicator.classList.remove('recording');
+            }
+        }
+
+        function handleTextInput() {
+            const textInput = document.getElementById('textInput');
+            const transcriptDisplay = document.getElementById('transcriptDisplay');
+            
+            if (textInput.value.trim()) {
+                responses[currentQuestionIndex] = textInput.value.trim();
+                transcriptDisplay.innerHTML = textInput.value.trim();
+                transcriptDisplay.className = 'transcript-display has-content';
+                document.getElementById('nextBtn').disabled = false;
+                document.getElementById('retryBtn').style.display = 'inline-block';
+            }
+        }
+
+        function retryQuestion() {
+            responses[currentQuestionIndex] = '';
+            loadQuestion(currentQuestionIndex);
+        }
+
+        function nextQuestion() {
+            if (currentQuestionIndex < questions.length - 1) {
+                loadQuestion(currentQuestionIndex + 1);
+                updateProgress();
+            } else {
+                completeOnboarding();
+            }
+        }
+
+        function updateProgress() {
+            const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+            document.getElementById('progressText').textContent = `Question ${currentQuestionIndex + 1} of ${questions.length}`;
+            
+            // Update time estimate
+            const remainingQuestions = questions.length - (currentQuestionIndex + 1);
+            const estimatedMinutes = Math.max(1, Math.ceil(remainingQuestions * 1.5));
+            document.getElementById('timeEstimate').textContent = `~${estimatedMinutes} minutes remaining`;
+        }
+
+        function completeOnboarding() {
+            document.getElementById('questionScreen').classList.add('d-none');
+            document.getElementById('completionScreen').classList.remove('d-none');
+            document.getElementById('progressBar').style.width = '100%';
+            document.getElementById('progressText').textContent = 'All questions completed!';
+            
+            // Show preview of responses
+            const responseCount = responses.filter(r => r && r.trim()).length;
+            document.getElementById('resultsPreview').innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-comments text-primary"></i> Responses Captured</h6>
+                        <p class="text-muted">${responseCount} detailed voice responses</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-brain text-primary"></i> Analysis Ready</h6>
+                        <p class="text-muted">Multi-AI soulprint extraction</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function generateProject() {
+            // Show processing overlay
+            document.getElementById('processingOverlay').style.display = 'flex';
+            
+            // Submit to backend
+            fetch('/api/process-voice-onboarding', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    transcriptions: responses.filter(r => r && r.trim()),
+                    session_id: Date.now().toString()
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('processingOverlay').style.display = 'none';
+                
+                if (data.success) {
+                    showProjectReady(data);
+                } else {
+                    showError(data.error || 'Failed to generate project. Please try again.');
+                }
+            })
+            .catch(error => {
+                document.getElementById('processingOverlay').style.display = 'none';
+                console.error('Error:', error);
+                showError('Network error. Please check your connection and try again.');
+            });
+        }
+
+        function showProjectReady(data) {
+            document.getElementById('completionScreen').innerHTML = `
+                <div class="completion-card">
+                    <i class="fas fa-gift completion-icon text-success"></i>
+                    <h3 class="mb-4">Your OperatorOS Project is Ready!</h3>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6><i class="fas fa-user-cog text-primary"></i> Project Type</h6>
+                                    <p class="text-muted">${data.project_type}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6><i class="fas fa-files text-primary"></i> Files Generated</h6>
+                                    <p class="text-muted">${data.files_count} personalized files</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h6>Your Soulprint Summary:</h6>
+                        <p class="text-muted">${data.soulprint_summary}</p>
+                    </div>
+                    
+                    <a href="/download-operatoros-project/${data.download_id}" class="btn btn-success btn-lg">
+                        <i class="fas fa-download me-2"></i>
+                        Download ${data.project_name}
+                    </a>
+                    
+                    <div class="mt-4">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle"></i>
+                            Your project includes setup instructions, personalized configurations, and implementation guidance.
+                        </small>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showError(message) {
+            alert(message);
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('OperatorOS Voice Onboarding initialized');
+        });
+    </script>
+</body>
+</html>
