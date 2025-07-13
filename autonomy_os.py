@@ -167,6 +167,15 @@ Choose assessment type (0-9):
     
     def _plan_income_replacement(self, profile: UserProfile, additional_input: str) -> str:
         """Income replacement strategy menu"""
+        # Check if this is a sub-menu selection
+        if additional_input and additional_input.strip().isdigit():
+            submenu_choice = int(additional_input.strip())
+            return self._handle_income_submenu(submenu_choice, profile)
+        
+        # Handle text-based selections for consulting business setup
+        if "consulting" in additional_input.lower():
+            return self._consulting_business_setup_details(profile)
+            
         return """
 💰 INCOME REPLACEMENT STRATEGY
 
@@ -200,6 +209,226 @@ Build sustainable income before you leave:
 0. Return to main menu
 
 Choose strategy path (0-14):
+"""
+    
+    def _handle_income_submenu(self, choice: int, profile: UserProfile) -> str:
+        """Handle income replacement sub-menu selections"""
+        if choice == 1:
+            return self._freelance_skill_monetization(profile)
+        elif choice == 2:
+            return self._consulting_business_setup_details(profile)
+        elif choice == 3:
+            return self._digital_product_creation(profile)
+        elif choice == 4:
+            return self._service_marketplace_strategy(profile)
+        elif choice == 5:
+            return self._remote_job_transition(profile)
+        elif choice == 6:
+            return self._online_business_development(profile)
+        elif choice == 7:
+            return self._passive_income_streams(profile)
+        elif choice == 8:
+            return self._investment_portfolio_optimization(profile)
+        elif choice == 9:
+            return self._scale_existing_income(profile)
+        elif choice == 10:
+            return self._multiple_income_diversification(profile)
+        elif choice == 11:
+            return self._geographic_arbitrage_planning(profile)
+        elif choice == 12:
+            return self._nomad_business_automation(profile)
+        elif choice == 13:
+            return self._calculate_income_requirements(profile)
+        elif choice == 14:
+            return self._risk_mitigation_strategies(profile)
+        else:
+            return "Invalid choice. Please select a number from 1-14."
+    
+    def _consulting_business_setup_details(self, profile: UserProfile) -> str:
+        """Detailed consulting business setup guidance"""
+        return """
+🎯 CONSULTING BUSINESS SETUP - Fast Track to Freedom
+
+Transform your expertise into a nomad-friendly consulting business in 30-90 days.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 WEEK 1-2: FOUNDATION
+1. Define your consulting niche (your expertise + market demand)
+2. Set consulting rates ($150-$500/hour based on experience)
+3. Create professional service packages (3-month, 6-month options)
+4. Register business entity (LLC recommended for nomads)
+
+💼 WEEK 3-4: POSITIONING
+5. Build simple consulting website (1-page is enough to start)
+6. Create case studies from past work experience
+7. Develop lead magnet (free consultation or strategy guide)
+8. Set up professional communication systems (Zoom, Calendly)
+
+📈 WEEK 5-8: CLIENT ACQUISITION
+9. Leverage existing network for first 3 clients
+10. LinkedIn outreach strategy (50 prospects/week)
+11. Speaking opportunities and content marketing
+12. Partnership development with complementary businesses
+
+⚡ WEEK 9-12: SCALING & AUTOMATION
+13. Systematize delivery processes
+14. Create retainer-based recurring revenue
+15. Build team or outsourcing systems
+16. Establish nomad-friendly payment and invoicing
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 NOMAD-SPECIFIC CONSIDERATIONS:
+• Time zone management (async communication preferred)
+• International banking and tax planning
+• Location-independent service delivery
+• Travel-proof technology stack
+
+🎯 TARGET: $10,000-$25,000/month within 6 months
+
+0. Return to income strategies
+00. Return to main menu
+
+Next step recommendation: Start with choice 1 - Define your niche
+"""
+    
+    def _freelance_skill_monetization(self, profile: UserProfile) -> str:
+        """Freelance skill monetization strategy"""
+        return """
+💼 FREELANCE SKILL MONETIZATION - Immediate Income
+
+Turn your current skills into freelance income within 30 days.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 SKILL AUDIT & POSITIONING
+1. List all professional skills and experience
+2. Research market demand and rates for your skills
+3. Choose 1-3 high-value skills to focus on initially
+4. Create compelling skill-based service offerings
+
+📱 PLATFORM SETUP (Week 1)
+5. Upwork profile optimization with portfolio samples
+6. Freelancer.com account setup
+7. LinkedIn freelance services activation
+8. Fiverr gig creation for specialized skills
+
+🚀 CLIENT ACQUISITION (Week 2-4)
+9. Apply to 10 relevant projects daily
+10. Network outreach to former colleagues/contacts
+11. Content marketing showcasing expertise
+12. Request testimonials from previous work
+
+⚡ OPTIMIZATION & SCALING
+13. Raise rates every 3 months
+14. Build long-term client relationships
+15. Create service packages vs. hourly work
+16. Automate routine processes
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💰 INCOME TARGETS:
+• Month 1: $2,000-$5,000
+• Month 3: $5,000-$10,000
+• Month 6: $8,000-$15,000
+
+0. Return to income strategies
+"""
+    
+    def _digital_product_creation(self, profile: UserProfile) -> str:
+        """Digital product creation strategy"""
+        return """
+📱 DIGITAL PRODUCT CREATION - Scalable Income
+
+Build products that generate income while you travel.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📚 PRODUCT TYPES & VALIDATION
+1. Online courses in your expertise area
+2. Digital templates and tools
+3. E-books and guides
+4. Software or mobile apps
+5. Subscription-based resources
+
+🛠️ CREATION TIMELINE (90 days)
+6. Week 1-2: Market research and validation
+7. Week 3-6: Content creation and production
+8. Week 7-8: Platform setup and testing
+9. Week 9-12: Launch and marketing campaign
+
+🚀 LAUNCH PLATFORMS
+10. Course platforms: Teachable, Thinkific, Udemy
+11. Digital marketplaces: Gumroad, Etsy Digital
+12. Self-hosted solutions: WordPress + WooCommerce
+13. App stores for mobile applications
+
+📈 MARKETING & SCALING
+14. Email list building (lead magnets)
+15. Social media content strategy
+16. Affiliate partnership programs
+17. Customer feedback and product iteration
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💰 REVENUE POTENTIAL:
+• Digital courses: $97-$497 each
+• Templates/Tools: $27-$97 each
+• E-books: $9.99-$49.99 each
+• Apps: $0.99-$9.99 or subscription
+
+0. Return to income strategies
+"""
+    
+    def _calculate_income_requirements(self, profile: UserProfile) -> str:
+        """Calculate nomad income requirements"""
+        return """
+💰 NOMAD INCOME REQUIREMENTS CALCULATOR
+
+Calculate exactly how much you need to earn for your nomad lifestyle.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🏠 LOCATION-BASED BUDGETS (Monthly USD)
+
+BUDGET DESTINATIONS:
+• Southeast Asia: $800-$1,500
+• Central America: $1,200-$2,000
+• Eastern Europe: $1,500-$2,500
+
+MODERATE DESTINATIONS:
+• Portugal/Spain: $2,000-$3,500
+• Mexico: $1,500-$2,800
+• Eastern Europe capitals: $2,500-$4,000
+
+PREMIUM DESTINATIONS:
+• Western Europe: $3,500-$6,000
+• Australia/New Zealand: $4,000-$7,000
+• Japan/Singapore: $3,000-$5,500
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💼 INCOME CALCULATION FORMULA
+
+1. Monthly living expenses in target locations
+2. Business expenses (15-20% of income)
+3. Emergency fund contribution (20% recommended)
+4. Home country obligations (taxes, insurance)
+5. Travel and visa costs ($200-$500/month)
+
+🎯 RECOMMENDED INCOME LEVELS:
+• Minimum viable: 2x your target monthly expenses
+• Comfortable: 3x your target monthly expenses  
+• Luxury: 4x your target monthly expenses
+
+📊 QUICK CALCULATOR:
+If your target location costs $2,000/month:
+• Minimum income needed: $4,000/month
+• Comfortable income: $6,000/month
+• Luxury income: $8,000/month
+
+0. Return to income strategies
 """
     
     def _choose_target_locations(self, profile: UserProfile, additional_input: str) -> str:
