@@ -1,0 +1,1070 @@
+# OperatorOS Clone Generator - Complete Downloadable System
+## Replit Agent Prompt for Full System Cloning
+
+You are the **OperatorOS Clone Generator**. Your mission is to generate a complete, working OperatorOS system that users can download and run in their own Replit environment.
+
+## Core Functionality
+
+When a user clicks "Generate Business Intelligence," instead of just generating a response, you will:
+
+1. **Generate strategic business intelligence** as usual
+2. **Create a complete OperatorOS clone** tailored to their business domain
+3. **Package everything into a downloadable ZIP** 
+4. **Provide setup instructions** for their own Replit deployment
+
+## Complete System Architecture to Generate
+
+### File Structure to Create
+```
+OperatorOS_Clone_[timestamp]/
+├── main.py                     # Flask application entry point
+├── app.py                      # Core Flask routes and logic
+├── requirements.txt            # All dependencies
+├── .env.example               # Environment variables template
+├── .replit                    # Replit configuration
+├── README.md                  # Complete setup instructions
+├── templates/
+│   ├── index.html             # Main application interface
+│   └── admin.html             # Admin dashboard (optional)
+├── static/
+│   ├── css/
+│   │   └── style.css          # Custom styling
+│   ├── js/
+│   │   └── app.js             # Frontend JavaScript
+│   └── images/
+├── agents/
+│   ├── __init__.py
+│   ├── base_agent.py          # Base agent class
+│   ├── business_agents.py     # Business intelligence agents
+│   ├── soulprint_agent.py     # Soulprint extraction
+│   └── flow_agents.py         # Daily optimization agents
+├── utils/
+│   ├── __init__.py
+│   ├── database.py            # Database utilities
+│   ├── zip_creator.py         # Project packaging
+│   └── ai_helpers.py          # AI integration helpers
+├── data/
+│   ├── prompts/               # System prompts
+│   └── templates/             # Project templates
+└── docs/
+    ├── SETUP.md               # Detailed setup guide
+    ├── CUSTOMIZATION.md       # How to customize
+    └── API.md                 # API documentation
+```
+
+## Implementation Strategy
+
+### 1. Update Flask Route for Clone Generation
+
+Replace the current `/api/generate` endpoint with this enhanced version:
+
+```python
+@app.route('/api/generate', methods=['POST'])
+@limiter.limit("5 per minute")
+def generate_business_intelligence_and_clone():
+    """Generate business intelligence AND create downloadable OperatorOS clone"""
+    try:
+        start_time = datetime.utcnow()
+        data = request.json
+        
+        if not data or 'input' not in data:
+            return jsonify({'success': False, 'error': 'No input provided'}), 400
+            
+        user_input = data.get('input', '').strip()
+        
+        if not user_input:
+            return jsonify({'success': False, 'error': 'Empty input provided'}), 400
+        
+        # 1. Generate strategic intelligence response
+        intelligence_response = generate_strategic_intelligence(user_input)
+        
+        # 2. Create complete OperatorOS clone tailored to their domain
+        clone_id = str(uuid.uuid4())[:8]
+        business_domain = extract_business_domain(user_input)
+        
+        # 3. Generate complete system
+        clone_package = create_operatoros_clone(clone_id, business_domain, user_input)
+        
+        # 4. Create downloadable ZIP
+        zip_path = package_clone_system(clone_package)
+        
+        # Calculate processing time
+        processing_time = (datetime.utcnow() - start_time).total_seconds()
+        
+        # Save to database
+        conversation = Conversation(
+            session_id=session.get('session_id', str(uuid.uuid4())),
+            business_input=user_input,
+            generated_response=intelligence_response,
+            clone_id=clone_id,
+            clone_domain=business_domain,
+            processing_time=processing_time
+        )
+        db.session.add(conversation)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'response': intelligence_response,
+            'clone_ready': True,
+            'clone_id': clone_id,
+            'business_domain': business_domain,
+            'download_url': f'/download/clone/{clone_id}',
+            'processing_time': processing_time
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Processing error: {str(e)}'
+        }), 500
+
+def extract_business_domain(user_input):
+    """Extract business domain/industry from user input"""
+    system_prompt = """Analyze this business input and identify the primary industry/domain in 1-3 words.
+    
+    Examples:
+    - "help with my restaurant" → "Restaurant"
+    - "e-commerce marketing strategy" → "E-commerce"
+    - "SaaS product launch" → "SaaS"
+    - "real estate investment" → "Real Estate"
+    
+    Return just the domain name, properly capitalized."""
+    
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_input}
+            ],
+            max_tokens=50,
+            temperature=0.1
+        )
+        
+        return response.choices[0].message.content.strip()
+        
+    except Exception:
+        return "Business"
+
+def create_operatoros_clone(clone_id, business_domain, user_input):
+    """Create complete OperatorOS system tailored to business domain"""
+    
+    # Generate user's soulprint from their business input
+    user_soulprint = extract_user_soulprint(user_input, business_domain)
+    
+    # Base system configuration
+    clone_config = {
+        'clone_id': clone_id,
+        'business_domain': business_domain,
+        'user_input': user_input,
+        'user_soulprint': user_soulprint,
+        'generated_at': datetime.utcnow().isoformat(),
+        'system_name': f"OperatorOS_{business_domain}_{clone_id}"
+    }
+    
+    # Generate all system files
+    system_files = {
+        'main.py': generate_main_py(clone_config),
+        'app.py': generate_app_py(clone_config),
+        'requirements.txt': generate_requirements(clone_config),
+        '.env.example': generate_env_example(clone_config),
+        '.replit': generate_replit_config(clone_config),
+        'README.md': generate_readme(clone_config),
+        'SOULPRINT.md': generate_soulprint_guide(clone_config),  # Core soulprint file
+        'templates/index.html': generate_main_template(clone_config),
+        'static/css/style.css': generate_custom_css(clone_config),
+        'static/js/app.js': generate_frontend_js(clone_config),
+        'agents/__init__.py': '',
+        'agents/base_agent.py': generate_base_agent(clone_config),
+        'agents/business_agents.py': generate_business_agents(clone_config),
+        'agents/soulprint_agent.py': generate_soulprint_agent(clone_config),
+        'agents/flow_agents.py': generate_flow_agents(clone_config),
+        'utils/__init__.py': '',
+        'utils/database.py': generate_database_utils(clone_config),
+        'utils/zip_creator.py': generate_zip_creator(clone_config),
+        'utils/ai_helpers.py': generate_ai_helpers(clone_config),
+        'utils/soulprint_loader.py': generate_soulprint_loader(clone_config),  # Soulprint integration
+        'docs/SETUP.md': generate_setup_guide(clone_config),
+        'docs/CUSTOMIZATION.md': generate_customization_guide(clone_config),
+        'docs/API.md': generate_api_docs(clone_config)
+    }
+    
+    return {
+        'config': clone_config,
+        'files': system_files
+    }
+
+def extract_user_soulprint(user_input, business_domain):
+    """Extract user's soulprint from their business intelligence request"""
+    
+    system_prompt = f"""You are the OperatorOS Soulprint Extraction Agent. Analyze this business intelligence request to understand the person behind it.
+
+Extract their operational soulprint - how they think, work, and approach business challenges:
+
+CORE PATTERNS:
+- Decision Making Style: How they approach problems and make choices
+- Information Processing: How they gather and analyze information  
+- Energy Patterns: What energizes vs drains them in business
+- Communication Style: How they prefer to receive and share information
+- Work Preferences: Their optimal working conditions and methods
+- Growth Areas: Where they want to improve or evolve
+- Strengths: Natural abilities and talents they leverage
+- Friction Points: Common bottlenecks or challenges they face
+
+BUSINESS CONTEXT:
+- Industry: {business_domain}
+- Challenge Focus: Primary business areas they're addressing
+- Strategic Orientation: Long-term vs short-term thinking patterns
+- Risk Tolerance: How they approach uncertainty and change
+
+Return a comprehensive soulprint analysis that will guide their personalized OperatorOS system."""
+    
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4",  # Use GPT-4 for deeper analysis
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_input}
+            ],
+            max_tokens=1500,
+            temperature=0.3
+        )
+        
+        return response.choices[0].message.content
+        
+    except Exception as e:
+        # Fallback soulprint if API fails
+        return f"""# Extracted Soulprint for {business_domain} Professional
+
+## Core Operational Patterns
+Based on your business intelligence request, you demonstrate:
+
+### Decision Making Style
+- Strategic thinker focused on {business_domain} optimization
+- Seeks comprehensive analysis before making decisions
+- Values data-driven insights and expert recommendations
+
+### Information Processing
+- Prefers structured, actionable intelligence
+- Appreciates executive-level summaries with detail available
+- Learns through strategic frameworks and systematic approaches
+
+### Energy Patterns
+- Energized by solving complex business challenges
+- Motivated by strategic planning and optimization
+- Thrives when given clear, actionable next steps
+
+### Work Preferences
+- Values efficiency and systematic approaches
+- Prefers professional, executive-level communication
+- Operates well with structured decision-making frameworks
+
+### Growth Areas
+- Seeking optimization in {business_domain}
+- Looking to improve strategic decision-making
+- Wants to systematize business intelligence gathering
+
+This soulprint will guide your OperatorOS system to provide personalized, relevant intelligence that matches your thinking patterns and business needs.
+"""
+
+def generate_soulprint_guide(config):
+    """Generate the core SOULPRINT.md file that guides the entire system"""
+    return f'''# Your OperatorOS Soulprint
+## The Guiding Intelligence for {config['system_name']}
+
+This file contains your extracted soulprint - the core patterns that guide how your OperatorOS system operates. Every agent, response, and recommendation in your system refers to this file to ensure personalized, relevant output.
+
+---
+
+## 🧠 Your Operational Soulprint
+
+{config['user_soulprint']}
+
+---
+
+## 🎯 How Your System Uses This Soulprint
+
+### Agent Behavior Customization
+Every AI agent in your OperatorOS reads this soulprint to:
+- **Match your communication style** - Deliver information in your preferred format
+- **Respect your decision-making process** - Provide analysis that fits your thinking patterns
+- **Align with your energy patterns** - Suggest approaches that energize rather than drain you
+- **Address your specific friction points** - Proactively help with your known challenges
+
+### Personalized Intelligence Generation
+When generating business intelligence, your system will:
+- **Filter recommendations** through your risk tolerance and strategic orientation
+- **Structure responses** according to your information processing preferences  
+- **Prioritize insights** based on your core business focus areas
+- **Suggest implementation approaches** that match your work preferences
+
+### Dynamic Learning and Adaptation
+Your soulprint evolves as your system learns more about you:
+- **Conversation patterns** refine understanding of your communication style
+- **Decision outcomes** improve recommendation accuracy
+- **Usage patterns** optimize system response timing and format
+- **Feedback loops** continuously align the system with your needs
+
+---
+
+## 🔧 Customizing Your Soulprint
+
+### Editing This File
+You can directly edit this SOULPRINT.md file to:
+- **Update patterns** as you learn more about your operational style
+- **Add new insights** from using your OperatorOS system
+- **Refine preferences** based on what works best for you
+- **Include domain-specific knowledge** relevant to {config['business_domain']}
+
+### System Integration Points
+Your soulprint integrates with:
+- **`agents/base_agent.py`** - Core agent behavior patterns
+- **`utils/soulprint_loader.py`** - Automatic soulprint reading system
+- **All agent responses** - Every output is filtered through your soulprint
+- **Daily flow optimization** - Personal productivity recommendations
+
+---
+
+## 📊 Soulprint-Driven Features
+
+### Business Intelligence Generation
+- **Strategic Analysis Style**: Customized to match your analytical preferences
+- **Risk Assessment Framework**: Aligned with your risk tolerance
+- **Implementation Roadmaps**: Structured according to your execution style
+- **Success Metrics**: Focused on KPIs that matter to your decision-making
+
+### Daily Flow Optimization  
+- **Energy Management**: Recommendations based on your energy patterns
+- **Priority Structuring**: Organized according to your task management style
+- **Decision Support**: Formatted to match your decision-making process
+- **Progress Tracking**: Metrics that align with your definition of success
+
+### Project Generation
+- **System Architecture**: Built according to your technical preferences
+- **Documentation Style**: Written in your preferred communication format
+- **Implementation Approach**: Structured around your work patterns
+- **Customization Options**: Aligned with your growth areas and interests
+
+---
+
+## 🚀 Evolution and Growth
+
+### Regular Soulprint Reviews
+Schedule monthly reviews to:
+- **Assess pattern accuracy** - Are the identified patterns still true?
+- **Update preferences** - Have your working styles evolved?
+- **Add new insights** - What have you learned about your optimal operations?
+- **Refine system behavior** - How can your OperatorOS serve you better?
+
+### Advanced Customization
+As you use your system, consider:
+- **Creating custom agents** for your specific {config['business_domain']} needs
+- **Building domain-specific prompts** that leverage your expertise
+- **Developing personal automation workflows** aligned with your patterns
+- **Integrating external tools** that complement your operational style
+
+---
+
+## 📝 Soulprint Changelog
+
+### {config['generated_at'][:10]} - Initial Extraction
+- Soulprint generated from business intelligence request
+- Core patterns identified and integrated into system
+- Baseline operational preferences established
+
+*Add entries here as you refine and evolve your soulprint*
+
+---
+
+**Remember**: This soulprint is the heart of your OperatorOS. The more accurate and detailed it becomes, the more personalized and effective your system will be. Your OperatorOS literally thinks like you because it thinks *with* your soulprint.
+'''
+
+def generate_soulprint_loader(config):
+    """Generate utility to load and integrate soulprint across the system"""
+    return f'''"""
+Soulprint Loader - Core Integration System
+Loads and integrates user soulprint across all OperatorOS components
+"""
+
+import os
+from pathlib import Path
+import logging
+
+class SoulprintLoader:
+    """Loads and provides soulprint guidance to all system components"""
+    
+    def __init__(self):
+        self.soulprint_path = Path(__file__).parent.parent / "SOULPRINT.md"
+        self.soulprint_content = self._load_soulprint()
+        self.patterns = self._extract_patterns()
+    
+    def _load_soulprint(self):
+        """Load the core soulprint file"""
+        try:
+            if self.soulprint_path.exists():
+                with open(self.soulprint_path, 'r', encoding='utf-8') as f:
+                    return f.read()
+            else:
+                logging.warning("SOULPRINT.md not found. System will use defaults.")
+                return self._default_soulprint()
+        except Exception as e:
+            logging.error(f"Error loading soulprint: {{e}}")
+            return self._default_soulprint()
+    
+    def _extract_patterns(self):
+        """Extract key patterns from soulprint for agent use"""
+        patterns = {{
+            'communication_style': 'professional',
+            'decision_making': 'analytical',
+            'information_processing': 'structured',
+            'business_domain': '{config['business_domain']}',
+            'energy_preferences': 'efficiency-focused',
+            'work_style': 'systematic'
+        }}
+        
+        # Parse soulprint content for specific patterns
+        content = self.soulprint_content.lower()
+        
+        # Communication style detection
+        if 'casual' in content or 'informal' in content:
+            patterns['communication_style'] = 'casual'
+        elif 'technical' in content or 'detailed' in content:
+            patterns['communication_style'] = 'technical'
+        
+        # Decision making style detection
+        if 'intuitive' in content or 'gut feeling' in content:
+            patterns['decision_making'] = 'intuitive'
+        elif 'collaborative' in content or 'team' in content:
+            patterns['decision_making'] = 'collaborative'
+        
+        return patterns
+    
+    def _default_soulprint(self):
+        """Default soulprint if file not found"""
+        return f"""# Default Soulprint for {{config['business_domain']}} Professional
+
+## Core Patterns
+- Professional communication style
+- Analytical decision-making approach  
+- Structured information processing
+- Efficiency-focused work preferences
+- Strategic business orientation
+
+This is a default soulprint. Please update SOULPRINT.md with your specific patterns.
+"""
+    
+    def get_agent_guidance(self, agent_type="general"):
+        """Get soulprint guidance for specific agent types"""
+        base_guidance = f"""
+SOULPRINT INTEGRATION GUIDANCE:
+
+User's Core Patterns:
+{{self.patterns}}
+
+Communication Style: {{self.patterns['communication_style']}}
+Decision Making: {{self.patterns['decision_making']}}
+Business Domain: {{self.patterns['business_domain']}}
+
+INSTRUCTIONS:
+- Tailor your responses to match the user's communication style
+- Structure analysis according to their decision-making patterns
+- Focus content on their business domain expertise
+- Respect their information processing preferences
+- Align recommendations with their work style preferences
+
+Full Soulprint Context:
+{{self.soulprint_content[:500]}}...
+"""
+        
+        # Agent-specific guidance
+        if agent_type == "business":
+            return base_guidance + f"""
+
+BUSINESS INTELLIGENCE SPECIFIC:
+- Focus on {{self.patterns['business_domain']}} industry insights
+- Structure strategic analysis according to their analytical style
+- Provide implementation roadmaps that match their work preferences
+- Include risk assessments aligned with their decision-making style
+"""
+        
+        elif agent_type == "flow":
+            return base_guidance + """
+
+DAILY FLOW SPECIFIC:
+- Suggest productivity approaches that match their energy patterns
+- Structure daily plans according to their work style
+- Recommend decision-making frameworks aligned with their preferences
+- Focus on efficiency improvements that resonate with their patterns
+"""
+        
+        elif agent_type == "soulprint":
+            return base_guidance + """
+
+SOULPRINT ANALYSIS SPECIFIC:
+- Build upon existing soulprint patterns
+- Identify evolution in their operational style
+- Suggest refinements to their personal system
+- Recommend customizations based on usage patterns
+"""
+        
+        return base_guidance
+    
+    def get_response_filter(self):
+        """Get response filtering guidelines based on soulprint"""
+        return {{
+            'tone': self.patterns['communication_style'],
+            'structure': 'executive' if 'strategic' in self.soulprint_content.lower() else 'detailed',
+            'focus_areas': [self.patterns['business_domain']],
+            'decision_support': self.patterns['decision_making'],
+            'format_preference': 'markdown' if 'structured' in self.patterns['information_processing'] else 'conversational'
+        }}
+    
+    def update_patterns(self, new_patterns):
+        """Update patterns based on system learning"""
+        self.patterns.update(new_patterns)
+        logging.info(f"Soulprint patterns updated: {{new_patterns}}")
+    
+    def reload_soulprint(self):
+        """Reload soulprint from file (useful after user edits)"""
+        self.soulprint_content = self._load_soulprint()
+        self.patterns = self._extract_patterns()
+        logging.info("Soulprint reloaded from file")
+
+# Global soulprint instance for system-wide access
+soulprint = SoulprintLoader()
+
+def get_soulprint_guidance(agent_type="general"):
+    """Convenience function to get soulprint guidance"""
+    return soulprint.get_agent_guidance(agent_type)
+
+def get_response_filter():
+    """Convenience function to get response filtering"""
+    return soulprint.get_response_filter()
+'''
+
+def generate_main_py(config):
+    """Generate main.py entry point"""
+    return f'''#!/usr/bin/env python3
+"""
+{config['system_name']} - Complete OperatorOS Clone
+Generated for: {config['business_domain']}
+Created: {config['generated_at']}
+
+This is your personalized OperatorOS system. 
+Run this file to start your business intelligence platform.
+"""
+
+import os
+from app import app, db
+
+def initialize_system():
+    """Initialize the OperatorOS system"""
+    print(f"🚀 Starting {config['system_name']}")
+    print(f"📊 Specialized for: {config['business_domain']}")
+    print(f"🎯 Your Business Intelligence Platform is starting...")
+    
+    # Create database tables
+    with app.app_context():
+        db.create_all()
+        print("✅ Database initialized")
+    
+    print("🌐 System ready! Your OperatorOS is running.")
+    print("📱 Open your browser to start using your personalized platform.")
+
+if __name__ == '__main__':
+    initialize_system()
+    
+    # Run the Flask application
+    app.run(
+        host='0.0.0.0',
+        port=int(os.getenv('PORT', 5000)),
+        debug=os.getenv('FLASK_ENV') == 'development'
+    )
+'''
+
+def generate_app_py(config):
+    """Generate complete Flask application"""
+    return f'''"""
+{config['system_name']} - Flask Application
+Complete OperatorOS system for {config['business_domain']}
+"""
+
+from flask import Flask, render_template, request, jsonify, send_file, session
+from flask_sqlalchemy import SQLAlchemy
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+import os
+import json
+import uuid
+import zipfile
+import tempfile
+from datetime import datetime
+import openai
+from pathlib import Path
+
+# Import our custom agents
+from agents.business_agents import BusinessIntelligenceAgent
+from agents.soulprint_agent import SoulprintAgent
+from agents.flow_agents import FlowAgent
+from utils.database import DatabaseManager
+from utils.zip_creator import ZipCreator
+
+# Initialize Flask app
+app = Flask(__name__)
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'change-this-in-production')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///operatoros.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Initialize extensions
+db = SQLAlchemy(app)
+limiter = Limiter(
+    app,
+    key_func=get_remote_address,
+    default_limits=["100 per hour"]
+)
+
+# Set OpenAI API key
+openai.api_key = os.getenv('OPENAI_API_KEY')
+
+# Database Models
+class Conversation(db.Model):
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    session_id = db.Column(db.String(255), nullable=False)
+    business_input = db.Column(db.Text)
+    generated_response = db.Column(db.Text)
+    project_id = db.Column(db.String(255))
+    business_domain = db.Column(db.String(100), default='{config['business_domain']}')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    processing_time = db.Column(db.Float)
+
+class Project(db.Model):
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    project_name = db.Column(db.String(255), nullable=False)
+    project_type = db.Column(db.String(50))
+    file_structure = db.Column(db.JSON)
+    download_count = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# Initialize agents
+business_agent = BusinessIntelligenceAgent(domain='{config['business_domain']}')
+soulprint_agent = SoulprintAgent()
+flow_agent = FlowAgent()
+
+# Routes
+@app.route('/')
+def index():
+    """Main application page"""
+    return render_template('index.html', 
+                         business_domain='{config['business_domain']}',
+                         system_name='{config['system_name']}')
+
+@app.route('/api/generate', methods=['POST'])
+@limiter.limit("10 per minute")
+def generate_intelligence():
+    """Generate business intelligence for {config['business_domain']}"""
+    try:
+        start_time = datetime.utcnow()
+        data = request.json
+        
+        user_input = data.get('input', '').strip()
+        if not user_input:
+            return jsonify({{'success': False, 'error': 'Input required'}}), 400
+        
+        # Generate domain-specific intelligence
+        response = business_agent.generate_intelligence(user_input)
+        
+        # Save conversation
+        conversation = Conversation(
+            session_id=session.get('session_id', str(uuid.uuid4())),
+            business_input=user_input,
+            generated_response=response,
+            processing_time=(datetime.utcnow() - start_time).total_seconds()
+        )
+        db.session.add(conversation)
+        db.session.commit()
+        
+        return jsonify({{
+            'success': True,
+            'response': response,
+            'conversation_id': conversation.id,
+            'business_domain': '{config['business_domain']}',
+            'processing_time': conversation.processing_time
+        }})
+        
+    except Exception as e:
+        return jsonify({{'success': False, 'error': str(e)}}), 500
+
+@app.route('/api/soulprint/extract', methods=['POST'])
+@limiter.limit("5 per minute")
+def extract_soulprint():
+    """Extract soulprint and generate personalized project"""
+    try:
+        data = request.json
+        answers = data.get('answers', [])
+        
+        if len(answers) != 10:
+            return jsonify({{'success': False, 'error': '10 answers required'}}), 400
+        
+        # Process soulprint
+        soulprint = soulprint_agent.analyze_responses(answers)
+        project = soulprint_agent.generate_project(soulprint, '{config['business_domain']}')
+        
+        return jsonify({{
+            'success': True,
+            'soulprint': soulprint,
+            'project_id': project['id'],
+            'download_ready': True
+        }})
+        
+    except Exception as e:
+        return jsonify({{'success': False, 'error': str(e)}}), 500
+
+@app.route('/api/flow/generate', methods=['POST'])
+@limiter.limit("20 per minute")
+def generate_flow():
+    """Generate daily flow optimization"""
+    try:
+        data = request.json
+        
+        energy = data.get('energy')
+        priority = data.get('priority', '').strip()
+        open_loops = data.get('open_loops', '').strip()
+        
+        if not energy or not priority:
+            return jsonify({{'success': False, 'error': 'Energy and priority required'}}), 400
+        
+        flow_plan = flow_agent.generate_flow_plan(energy, priority, open_loops)
+        
+        return jsonify({{
+            'success': True,
+            'response': flow_plan,
+            'processing_time': 1.5
+        }})
+        
+    except Exception as e:
+        return jsonify({{'success': False, 'error': str(e)}}), 500
+
+@app.route('/download/<project_id>')
+def download_project(project_id):
+    """Download generated project"""
+    try:
+        # Find project in database
+        project = Project.query.filter_by(id=project_id).first()
+        if not project:
+            return jsonify({{'error': 'Project not found'}}), 404
+        
+        # Create ZIP file
+        zip_creator = ZipCreator()
+        zip_path = zip_creator.create_project_zip(project)
+        
+        # Update download count
+        project.download_count += 1
+        db.session.commit()
+        
+        return send_file(
+            zip_path,
+            as_attachment=True,
+            download_name=f'{{project.project_name}}.zip',
+            mimetype='application/zip'
+        )
+        
+    except Exception as e:
+        return jsonify({{'error': str(e)}}), 500
+
+# Initialize database
+with app.app_context():
+    db.create_all()
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
+'''
+
+def generate_requirements(config):
+    """Generate requirements.txt"""
+    return '''# OperatorOS Complete System Requirements
+
+# Core Flask Framework
+Flask==3.1.1
+Flask-SQLAlchemy==3.1.1
+Flask-Limiter==3.12
+
+# AI Integration
+openai==1.93.2
+
+# Database
+psycopg2-binary==2.9.10
+SQLAlchemy==2.0.41
+
+# Utilities
+python-dotenv==1.0.0
+requests==2.32.4
+validators==0.35.0
+
+# Production Server
+gunicorn==23.0.0
+
+# Additional Utilities
+Werkzeug==3.1.3
+'''
+
+def generate_env_example(config):
+    """Generate .env.example template"""
+    return f'''# {config['system_name']} Environment Variables
+# Copy this file to .env and add your actual values
+
+# Required: OpenAI API Key for AI functionality
+OPENAI_API_KEY=your-openai-api-key-here
+
+# Flask Configuration
+SECRET_KEY=your-secret-key-here
+FLASK_ENV=development
+
+# Database Configuration (SQLite by default, PostgreSQL for production)
+DATABASE_URL=sqlite:///operatoros.db
+
+# Optional: Custom Configuration
+BUSINESS_DOMAIN={config['business_domain']}
+SYSTEM_NAME={config['system_name']}
+
+# Production Settings (uncomment for deployment)
+# PORT=5000
+# FLASK_ENV=production
+'''
+
+def generate_replit_config(config):
+    """Generate .replit configuration"""
+    return '''modules = ["python-3.11", "postgresql-16"]
+
+[nix]
+channel = "stable-24_05"
+packages = ["glibcLocales", "jq", "openssl", "postgresql"]
+
+[deployment]
+deploymentTarget = "autoscale"
+run = ["python", "main.py"]
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start OperatorOS"
+
+[[workflows.workflow]]
+name = "Start OperatorOS"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python main.py"
+waitForPort = 5000
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+'''
+
+def generate_readme(config):
+    """Generate comprehensive README.md"""
+    return f'''# {config['system_name']}
+
+Your Complete OperatorOS Business Intelligence Platform
+
+## 🧠 Your Personalized System
+
+This OperatorOS is **uniquely yours**. It was generated based on your business intelligence request and contains your extracted **soulprint** - the core patterns that guide how you think, work, and make decisions.
+
+### 🎯 Soulprint-Driven Intelligence
+
+Every response from your OperatorOS is filtered through your personal soulprint:
+- **Communication Style**: Matches how you prefer to receive information
+- **Decision Making**: Structured according to your analytical patterns  
+- **Business Focus**: Specialized for {config['business_domain']} industry
+- **Work Preferences**: Aligned with your optimal operating conditions
+
+## 🚀 Quick Start
+
+### 1. Setup in Replit
+- Upload this ZIP file to a new Replit project
+- Or import from GitHub if you've pushed it there
+
+### 2. Configure Environment
+- Copy `.env.example` to `.env`
+- Add your OpenAI API key: `OPENAI_API_KEY=your-key-here`
+- Configure other settings as needed
+
+### 3. Run Your System
+```bash
+python main.py
+```
+
+### 4. Access Your Platform
+- Open the web interface in your browser
+- Start generating soulprint-driven business intelligence
+- Experience responses tailored to your thinking patterns
+
+## 🔧 Core Features
+
+### Business Intelligence Generator
+- **Soulprint Integration**: Every analysis matches your decision-making style
+- **Domain Specialization**: Focused on {config['business_domain']} insights
+- **Personalized Structure**: Information formatted for your preferences
+- **Strategic Alignment**: Recommendations that fit your operational patterns
+
+### Daily Flow Optimization
+- **Energy Awareness**: Suggestions based on your energy patterns
+- **Priority Structuring**: Organized according to your work style
+- **Decision Support**: Frameworks that match your thinking process
+- **Personal Productivity**: Optimized for your specific patterns
+
+### Soulprint System
+- **`SOULPRINT.md`**: Core file that guides all system behavior
+- **Dynamic Integration**: Every agent reads and respects your patterns
+- **Continuous Learning**: System evolves as it learns more about you
+- **Personal Evolution**: Update your soulprint as you grow and change
+
+## 📁 System Architecture
+
+### Core Files
+- **`SOULPRINT.md`**: Your operational patterns and preferences (EDIT THIS!)
+- **`main.py`**: System entry point and initialization
+- **`app.py`**: Flask application with all routes and logic
+
+### Agent System
+- **`agents/base_agent.py`**: Base class with soulprint integration
+- **`agents/business_agents.py`**: {config['business_domain']} specialized intelligence
+- **`agents/soulprint_agent.py`**: Personal pattern analysis and evolution
+- **`agents/flow_agents.py`**: Daily optimization and productivity
+
+### Utilities
+- **`utils/soulprint_loader.py`**: Automatic soulprint integration system
+- **`utils/database.py`**: Conversation and project storage
+- **`utils/zip_creator.py`**: Project packaging and downloads
+
+## 🎨 Customization
+
+### Editing Your Soulprint
+1. **Open `SOULPRINT.md`** - This is the heart of your system
+2. **Update patterns** - Refine how you work and think
+3. **Add insights** - Include learnings from using your OperatorOS
+4. **Save changes** - System automatically integrates updates
+
+### Adding Custom Agents
+```python
+# Example: Create a custom agent for your specific needs
+from agents.base_agent import BaseAgent
+
+class My{config['business_domain']}Agent(BaseAgent):
+    def __init__(self):
+        super().__init__(
+            name="My Custom Agent",
+            role="Specialized {config['business_domain']} Advisor",
+            agent_type="business"
+        )
+    
+    def custom_analysis(self, input_data):
+        # Your soulprint is automatically integrated
+        return self.process_with_soulprint(input_data)
+```
+
+### Domain-Specific Prompts
+Create specialized prompts in `data/prompts/` that leverage your expertise and soulprint patterns.
+
+## 🔄 How Soulprint Integration Works
+
+### Every Response is Personalized
+1. **Agent receives request** → Loads your soulprint patterns
+2. **Analyzes through your lens** → Applies your thinking style
+3. **Structures response** → Formats for your preferences  
+4. **Delivers intelligence** → Optimized for your decision-making
+
+### Dynamic Learning
+- **Usage patterns** → Refines understanding of your style
+- **Feedback loops** → Improves response accuracy
+- **Conversation history** → Builds deeper personalization
+- **Explicit updates** → You can directly edit your soulprint
+
+## 📊 Advanced Features
+
+### Business Intelligence
+- **Multi-Agent Analysis**: CFO, COO, CMO, CTO perspectives
+- **Strategic Frameworks**: Customized to your analytical style
+- **Implementation Roadmaps**: Structured for your execution preferences
+- **Risk Assessments**: Aligned with your risk tolerance
+
+### Project Generation
+- **Soulprint-Driven Projects**: Systems built for your operational style
+- **Custom Templates**: Pre-configured for your business domain
+- **Personal Automation**: Workflows that match your patterns
+- **Growth Pathways**: Development aligned with your goals
+
+### Analytics and Insights
+- **Personal Patterns**: Track how your soulprint evolves
+- **Usage Analytics**: Understand how you use your OperatorOS
+- **Effectiveness Metrics**: Measure personalization success
+- **Optimization Opportunities**: Suggestions for system improvement
+
+## 🔐 Security and Privacy
+
+### Your Data
+- **Local Storage**: Everything runs in your Replit environment
+- **Personal Control**: You own all data and customizations
+- **Privacy First**: No external data sharing beyond OpenAI API
+- **Secure Configuration**: Environment variables for sensitive data
+
+### Soulprint Privacy
+- **Personal Patterns**: Stored locally in your system only
+- **No External Sharing**: Your soulprint never leaves your environment
+- **Full Control**: Edit, update, or remove patterns at any time
+- **Secure Integration**: Soulprint used only for personalizing your responses
+
+## 📈 Growing Your System
+
+### Monthly Soulprint Review
+- **Pattern Accuracy**: Are identified patterns still true?
+- **New Insights**: What have you learned about your operations?
+- **System Evolution**: How can your OperatorOS serve you better?
+- **Feature Requests**: What new capabilities would help?
+
+### Scaling Your OperatorOS
+- **Team Integration**: Share with team members (without personal soulprint)
+- **Business Expansion**: Add new domains and specializations
+- **Advanced Automation**: Build complex workflows and integrations
+- **Enterprise Features**: Add authentication, analytics, and reporting
+
+## 🆘 Support and Documentation
+
+### Getting Help
+- **`docs/SETUP.md`**: Detailed setup and configuration guide
+- **`docs/CUSTOMIZATION.md`**: Advanced customization options
+- **`docs/API.md`**: API documentation for integrations
+- **System Logs**: Check console output for troubleshooting
+
+### Community and Evolution
+- **Fork and Customize**: Make this system truly yours
+- **Share Improvements**: Contribute back to the OperatorOS community
+- **Best Practices**: Document what works for your patterns
+- **Continuous Improvement**: Evolve with your changing needs
+
+---
+
+## 🌟 Remember
+
+This isn't just another AI tool - it's **your personal operating system**. The more you use it and refine your soulprint, the more it becomes an extension of your thinking and decision-making process.
+
+Your OperatorOS literally thinks like you because it thinks **with** your soulprint.
+
+**Start by exploring `SOULPRINT.md` - that's where the magic happens.**
+
+---
+
+Generated: {config['generated_at']}
+Specialized for: {config['business_domain']}
+Unique System ID: {config['clone_id']}
+'''

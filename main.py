@@ -73,6 +73,10 @@ app.register_blueprint(voice_bp)
 # CSRF exemptions for API endpoints
 csrf.exempt(voice_bp)
 
+# Initialize OperatorOS Clone Generator
+from utils.operatoros_clone_generator import OperatorOSCloneGenerator
+clone_generator = OperatorOSCloneGenerator()
+
 # Initialize EOS System
 from eos_system import eos_system
 
@@ -2450,8 +2454,8 @@ def api_real_estate_engine():
 @csrf.exempt
 def api_business_intelligence():
     """
-    Universal Business Intelligence API - Generates comprehensive business packages
-    Transforms any business prompt into professional 10-file .md package
+    Enhanced Business Intelligence API - Generates strategic intelligence AND complete OperatorOS clone
+    Transforms any business prompt into professional analysis plus downloadable personalized system
     """
     try:
         data = request.get_json() if request.is_json else {}
@@ -2504,6 +2508,120 @@ def api_business_intelligence():
     except Exception as e:
         logging.error(f"Error in business intelligence API: {str(e)}")
         return jsonify({"error": f"Business intelligence processing failed: {str(e)}"}), 500
+
+@app.route('/api/generate-operatoros-clone', methods=['POST'])
+@limiter.limit("3 per minute")
+@csrf.exempt
+def api_generate_operatoros_clone():
+    """
+    OperatorOS Clone Generator API - Generate complete downloadable OperatorOS system
+    Transforms any business prompt into personalized, downloadable business intelligence platform
+    """
+    try:
+        data = request.get_json() if request.is_json else {}
+        
+        if not data or 'business_input' not in data:
+            return jsonify({"error": "Business input is required"}), 400
+        
+        business_input = data['business_input'].strip()
+        
+        # Validate input
+        is_valid, error_msg = InputValidator.validate_conversation_input(business_input)
+        if not is_valid:
+            return jsonify({"error": error_msg}), 400
+        
+        # Sanitize input
+        business_input = InputValidator.sanitize_html(business_input)
+        
+        start_time = datetime.utcnow()
+        
+        # 1. Generate strategic business intelligence first
+        enhanced_chain = Enhanced11AgentChain.create_new(
+            business_input, 
+            session_id=str(uuid.uuid4()),
+            user_ip=request.remote_addr
+        )
+        
+        # Execute business intelligence pipeline
+        intelligence_result = enhanced_chain.execute_complete_pipeline(business_input)
+        
+        # 2. Generate complete OperatorOS clone
+        clone_id = str(uuid.uuid4())[:8]
+        business_domain = clone_generator.extract_business_domain(business_input)
+        clone_package = clone_generator.create_operatoros_clone(clone_id, business_domain, business_input)
+        clone_download_id = clone_generator.package_clone_system(clone_package)
+        
+        # Calculate processing time
+        processing_time = (datetime.utcnow() - start_time).total_seconds()
+        
+        # Save to database
+        conversation = Conversation(
+            session_id=str(uuid.uuid4()),
+            user_input=business_input,
+            agent_response=f"Generated OperatorOS clone for {business_domain}: {clone_package['config']['system_name']}",
+            agent_type="operatoros_clone_generator",
+            processing_time=processing_time,
+            created_at=datetime.utcnow()
+        )
+        db.session.add(conversation)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Complete OperatorOS system generated for {business_domain}',
+            # Strategic Intelligence
+            'intelligence_ready': intelligence_result.get('success', False),
+            'intelligence_package': intelligence_result.get('business_package', {}) if intelligence_result.get('success') else None,
+            # OperatorOS Clone
+            'clone_ready': True,
+            'clone_id': clone_id,
+            'business_domain': business_domain,
+            'system_name': clone_package['config']['system_name'],
+            'download_url': f'/download-operatoros-project/{clone_download_id}',
+            'clone_features': {
+                'personalized_agents': True,
+                'soulprint_integration': True,
+                'daily_flow_optimization': True,
+                'business_dashboard': True,
+                'complete_source_code': True,
+                'setup_documentation': True,
+                'api_endpoints': True,
+                'database_system': True
+            },
+            'system_capabilities': [
+                f'{business_domain} Intelligence Generation',
+                'Personalized Soulprint Analysis',
+                'Daily Flow & Productivity Optimization',
+                'Multi-LLM Integration (OpenAI, Anthropic, Gemini)',
+                'Executive Dashboard & Analytics',
+                'Conversation History & Learning',
+                'Complete API Documentation',
+                'Customizable Agent Framework'
+            ],
+            'file_structure': {
+                'total_files': len(clone_package['files']),
+                'core_files': ['main.py', 'app.py', 'SOULPRINT.md', 'README.md'],
+                'agent_files': ['business_agents.py', 'soulprint_agent.py', 'flow_agents.py'],
+                'utility_files': ['database.py', 'ai_helpers.py', 'zip_creator.py'],
+                'documentation': ['SETUP.md', 'CUSTOMIZATION.md', 'API.md'],
+                'templates': ['index.html', 'dashboard.html'],
+                'configuration': ['.env.example', '.replit', 'config.py']
+            },
+            'setup_instructions': {
+                'step_1': 'Upload ZIP to new Replit project',
+                'step_2': 'Add API keys to Secrets (OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY)',
+                'step_3': 'Click Run button to start your system',
+                'step_4': 'Customize SOULPRINT.md for personalization',
+                'estimated_setup_time': '5 minutes'
+            },
+            'processing_time': processing_time,
+            'conversation_id': conversation.id,
+            'generated_at': datetime.utcnow().isoformat()
+        })
+        
+    except Exception as e:
+        logging.error(f"Error in OperatorOS clone generation: {str(e)}")
+        return jsonify({"error": f"Clone generation failed: {str(e)}"}), 500
 
 @app.route('/api/executive_advisory', methods=['POST'])
 @limiter.limit("3 per minute")
