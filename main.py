@@ -2593,10 +2593,13 @@ def api_autonomy_os():
             session['session_id'] = user_id
             session['created_at'] = datetime.utcnow().isoformat()
         
-        # Validate input
-        is_valid, error_msg = InputValidator.validate_conversation_input(user_message)
-        if not is_valid:
-            return jsonify({"error": error_msg}), 400
+        # Validate input - AutonomyOS allows short menu choices
+        if not user_message or len(user_message.strip()) == 0:
+            return jsonify({"error": "user_message is required"}), 400
+        
+        # AutonomyOS accepts single digits and short commands
+        if len(user_message.strip()) > 500:  # Still prevent extremely long inputs
+            return jsonify({"error": "Input too long"}), 400
         
         # Sanitize input
         user_message = InputValidator.sanitize_html(user_message)
