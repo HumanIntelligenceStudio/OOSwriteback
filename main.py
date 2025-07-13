@@ -87,6 +87,9 @@ flow_agent_manager = FlowAgentManager()
 # Initialize OperatorOS Master Agent
 from operatoros_master import operatoros_master
 
+# Initialize AutonomyOS Agent
+from autonomy_os import autonomy_os_agent
+
 # Initialize notification system with SocketIO
 from notifications import notification_manager, system_monitor
 notification_manager.socketio = socketio
@@ -2566,6 +2569,218 @@ def api_executive_advisory():
     except Exception as e:
         logging.error(f"Error in executive advisory API: {str(e)}")
         return jsonify({"error": f"Executive advisory processing failed: {str(e)}"}), 500
+
+# AutonomyOS API Endpoints - Menu-Driven Nomad Transition Agent
+@app.route('/api/autonomy_os', methods=['POST'])
+@limiter.limit("10 per minute")
+@csrf.exempt
+def api_autonomy_os():
+    """
+    AutonomyOS API - Menu-driven nomad transition command center
+    Processes user choices and provides numbered menu options
+    """
+    try:
+        data = request.get_json() if request.is_json else {}
+        
+        if not data or 'user_message' not in data:
+            return jsonify({"error": "user_message is required"}), 400
+        
+        user_message = data['user_message'].strip()
+        user_id = data.get('user_id') or session.get('session_id') or str(uuid.uuid4())
+        
+        # Initialize session if needed
+        if 'session_id' not in session:
+            session['session_id'] = user_id
+            session['created_at'] = datetime.utcnow().isoformat()
+        
+        # Validate input
+        is_valid, error_msg = InputValidator.validate_conversation_input(user_message)
+        if not is_valid:
+            return jsonify({"error": error_msg}), 400
+        
+        # Sanitize input
+        user_message = InputValidator.sanitize_html(user_message)
+        
+        # Process with AutonomyOS agent
+        start_time = datetime.utcnow()
+        response = autonomy_os_agent.respond_to_user(user_message, user_id)
+        processing_time = (datetime.utcnow() - start_time).total_seconds()
+        
+        # Create conversation record
+        conversation_id = str(uuid.uuid4())
+        conversation = Conversation(
+            id=conversation_id,
+            initial_input=user_message,
+            current_agent_index=0,
+            is_complete=True,
+            session_id=session.get('session_id'),
+            user_ip=get_remote_address()
+        )
+        db.session.add(conversation)
+        
+        entry = ConversationEntry(
+            conversation_id=conversation_id,
+            agent_name="AutonomyOS",
+            agent_role="Nomad Transition Command Center",
+            input_text=user_message,
+            response_text=response,
+            processing_time_seconds=processing_time,
+            tokens_used=len(response.split()) * 1.3,  # Rough token estimate
+            model_used="autonomy-os-menu",
+            api_provider="autonomy-os",
+            response_length=len(response),
+            error_occurred=False
+        )
+        db.session.add(entry)
+        db.session.commit()
+        
+        session['current_conversation_id'] = conversation_id
+        
+        # Send notification
+        from notifications import notification_manager, NotificationLevel
+        notification_manager.add_notification(
+            "AutonomyOS Interaction",
+            f"User navigated nomad transition menu system",
+            NotificationLevel.INFO,
+            {"conversation_id": conversation_id, "user_choice": user_message}
+        )
+        
+        return jsonify({
+            "success": True,
+            "conversation_id": conversation_id,
+            "response": response,
+            "processing_time": processing_time,
+            "user_id": user_id,
+            "agent_type": "autonomy_os",
+            "menu_driven": True,
+            "timestamp": entry.created_at.isoformat()
+        })
+        
+    except Exception as e:
+        logging.error(f"Error in AutonomyOS API: {str(e)}")
+        return jsonify({"error": f"AutonomyOS processing failed: {str(e)}"}), 500
+
+@app.route('/api/autonomy_os/menu', methods=['GET'])
+@limiter.limit("20 per minute")
+def api_autonomy_os_menu():
+    """Get the main AutonomyOS menu"""
+    try:
+        user_id = session.get('session_id')
+        menu = autonomy_os_agent.get_main_menu(user_id)
+        
+        return jsonify({
+            "success": True,
+            "menu": menu,
+            "agent": "AutonomyOS",
+            "type": "main_menu"
+        })
+        
+    except Exception as e:
+        logging.error(f"Error getting AutonomyOS menu: {str(e)}")
+        return jsonify({"error": f"Menu retrieval failed: {str(e)}"}), 500
+
+@app.route('/api/autonomy_os/profile', methods=['GET'])
+@limiter.limit("20 per minute")
+def api_autonomy_os_profile():
+    """Get user's nomad transition profile"""
+    try:
+        user_id = session.get('session_id')
+        if not user_id:
+            return jsonify({"error": "No active session found"}), 404
+        
+        profile = autonomy_os_agent.get_user_profile(user_id)
+        
+        profile_data = {
+            "user_id": profile.user_id,
+            "current_income": profile.current_income,
+            "profession": profile.profession,
+            "location": profile.location,
+            "target_countries": profile.target_countries,
+            "readiness_score": profile.readiness_score,
+            "state": profile.state.value,
+            "progress": profile.progress
+        }
+        
+        return jsonify({
+            "success": True,
+            "profile": profile_data,
+            "agent": "AutonomyOS"
+        })
+        
+    except Exception as e:
+        logging.error(f"Error getting AutonomyOS profile: {str(e)}")
+        return jsonify({"error": f"Profile retrieval failed: {str(e)}"}), 500
+
+@app.route('/api/autonomy_os/agents', methods=['GET'])
+@limiter.limit("20 per minute")
+def api_autonomy_os_agents():
+    """Get list of custom specialized agents"""
+    try:
+        user_id = session.get('session_id')
+        
+        agents_data = {
+            "custom_agents": autonomy_os_agent.custom_agents,
+            "total_count": len(autonomy_os_agent.custom_agents),
+            "user_id": user_id
+        }
+        
+        return jsonify({
+            "success": True,
+            "agents": agents_data,
+            "agent": "AutonomyOS"
+        })
+        
+    except Exception as e:
+        logging.error(f"Error getting AutonomyOS agents: {str(e)}")
+        return jsonify({"error": f"Agents retrieval failed: {str(e)}"}), 500
+
+# AutonomyOS Web Interface Route
+@app.route('/autonomy_os')
+def autonomy_os_interface():
+    """Serve the AutonomyOS web interface"""
+    try:
+        # Initialize session if needed
+        if 'session_id' not in session:
+            session['session_id'] = str(uuid.uuid4())
+            session['created_at'] = datetime.utcnow().isoformat()
+        
+        return render_template('autonomy_os_interface.html')
+        
+    except Exception as e:
+        logging.error(f"Error loading AutonomyOS interface: {str(e)}")
+        return render_template('error.html', error="Failed to load AutonomyOS interface"), 500
+
+# Simple test route for AutonomyOS
+@app.route('/test_autonomy')
+def test_autonomy():
+    """Simple test route for AutonomyOS functionality"""
+    try:
+        # Test the AutonomyOS agent
+        test_response = autonomy_os_agent.respond_to_user("hello", "test_user")
+        
+        return f"""
+        <html>
+        <head><title>AutonomyOS Test</title></head>
+        <body style="background: #0a1929; color: white; font-family: monospace; padding: 20px;">
+        <h1>🚀 AutonomyOS Test</h1>
+        <p><strong>Test Input:</strong> "hello"</p>
+        <pre style="background: #1a2332; padding: 15px; border-radius: 5px; overflow-x: auto;">{test_response}</pre>
+        <p><a href="/autonomy_os" style="color: #ff6b35;">→ Go to Full AutonomyOS Interface</a></p>
+        <p><a href="/" style="color: #ff6b35;">→ Back to Main Menu</a></p>
+        </body>
+        </html>
+        """
+        
+    except Exception as e:
+        return f"""
+        <html>
+        <body style="background: #0a1929; color: white; padding: 20px;">
+        <h1>AutonomyOS Test Error</h1>
+        <p>Error: {str(e)}</p>
+        <p><a href="/">Back to Main Menu</a></p>
+        </body>
+        </html>
+        """
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
