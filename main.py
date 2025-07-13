@@ -66,6 +66,12 @@ app.register_blueprint(admin_bp)
 from video_upload import video_bp
 app.register_blueprint(video_bp)
 
+# Register voice onboarding blueprint
+from voice_onboarding import voice_bp
+app.register_blueprint(voice_bp)
+
+# CSRF exemptions will be handled in the route decorators
+
 # Initialize EOS System
 from eos_system import eos_system
 
